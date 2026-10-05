@@ -19,8 +19,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          tar --exclude=.git --exclude=cpubench-feature-source.tar.gz \
-            -czf cpubench-feature-source.tar.gz .
+          git archive --format=tar.gz --output=cpubench-feature-source.tar.gz HEAD
       - uses: actions/upload-artifact@v4
         with:
           name: cpubench-feature-source
