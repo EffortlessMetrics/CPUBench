@@ -18,36 +18,76 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Reassemble and verify archive
+      - name: Reassemble, verify, and materialize source
+        id: materialize
+        continue-on-error: true
         shell: bash
         run: |
-          set -euo pipefail
-          cat .bootstrap/part-* > /tmp/CPUBench-source.tar.xz
-          echo "ae86dff63c2d985d27ebae43b014ca98972da11d9ffd63e63538a2af45cfce08  /tmp/CPUBench-source.tar.xz" | sha256sum -c -
-          rm -rf /tmp/cpubench-source
-          mkdir -p /tmp/cpubench-source
-          tar -xJf /tmp/CPUBench-source.tar.xz -C /tmp/cpubench-source
-          test -f /tmp/cpubench-source/pyproject.toml
+          set -uo pipefail
+          {
+            echo "Bootstrap source diagnostics"
+            echo "Repository: $GITHUB_REPOSITORY"
+            echo "Commit: $GITHUB_SHA"
+            echo
+            echo "Chunk inventory:"
+            ls -l .bootstrap/part-*
+            echo
+            cat \
+              .bootstrap/part-00 .bootstrap/part-01 .bootstrap/part-02 \
+              .bootstrap/part-03 .bootstrap/part-04 .bootstrap/part-05 \
+              .bootstrap/part-06 .bootstrap/part-07 .bootstrap/part-08 \
+              .bootstrap/part-09 .bootstrap/part-10 .bootstrap/part-11 \
+              .bootstrap/part-12 .bootstrap/part-13 .bootstrap/part-14 \
+              .bootstrap/part-15 .bootstrap/part-16 .bootstrap/part-17 \
+              .bootstrap/part-18 .bootstrap/part-19 .bootstrap/part-20 \
+              .bootstrap/part-21 > /tmp/CPUBench-source.tar.xz
+            echo "Archive size:"
+            wc -c /tmp/CPUBench-source.tar.xz
+            echo "Archive digest:"
+            sha256sum /tmp/CPUBench-source.tar.xz
+            actual="$(sha256sum /tmp/CPUBench-source.tar.xz | awk '{print $1}')"
+            expected="ae86dff63c2d985d27ebae43b014ca98972da11d9ffd63e63538a2af45cfce08"
+            if [[ "$actual" != "$expected" ]]; then
+              echo "Digest mismatch: expected $expected, got $actual"
+              exit 11
+            fi
+            xz -t /tmp/CPUBench-source.tar.xz
+            rm -rf /tmp/cpubench-source
+            mkdir -p /tmp/cpubench-source
+            tar -xJf /tmp/CPUBench-source.tar.xz -C /tmp/cpubench-source
+            echo "Extracted top-level files:"
+            find /tmp/cpubench-source -maxdepth 2 -type f | sort | head -100
+            test -f /tmp/cpubench-source/pyproject.toml
+            rsync -a --delete \
+              --exclude '.git/' \
+              --exclude '.bootstrap/' \
+              --exclude '.github/workflows/bootstrap.yml' \
+              /tmp/cpubench-source/ ./
+            rm -rf .bootstrap
+            rm -f .github/workflows/bootstrap.yml
+          } 2>&1 | tee /tmp/bootstrap-source.log
 
-      - name: Materialize repository
+      - name: Commit exact source tree or diagnostics
+        if: always()
         shell: bash
+        env:
+          MATERIALIZE_OUTCOME: ${{ steps.materialize.outcome }}
         run: |
           set -euo pipefail
-          rsync -a --delete \
-            --exclude '.git/' \
-            --exclude '.bootstrap/' \
-            --exclude '.github/workflows/bootstrap.yml' \
-            /tmp/cpubench-source/ ./
-          rm -rf .bootstrap
-          rm -f .github/workflows/bootstrap.yml
-
-      - name: Commit exact source tree
-        shell: bash
-        run: |
-          set -euo pipefail
+          if [[ "$MATERIALIZE_OUTCOME" != "success" ]]; then
+            cp /tmp/bootstrap-source.log bootstrap-diagnostic.log
+          fi
           git config user.name "Steven Zimmerman, CPA"
           git config user.email "15812269+EffortlessSteven@users.noreply.github.com"
           git add -A
-          git diff --cached --quiet && exit 0
-          git commit -m "feat: publish CPUBench evidence campaign alpha"
-          git push origin HEAD:main
+          if ! git diff --cached --quiet; then
+            if [[ "$MATERIALIZE_OUTCOME" == "success" ]]; then
+              git commit -m "feat: publish CPUBench evidence campaign alpha"
+            else
+              git commit -m "chore: retain CPUBench bootstrap diagnostics"
+            fi
+            git push origin HEAD:main
+          fi
+          if [[ "$MATERIALIZE_OUTCOME" != "success" ]]; then
+            exit 1
+          fi
