@@ -53,9 +53,21 @@ jobs:
           source = candidates[0].parent
           print(f"source root={source}")
 
-          preserved_git = repo / ".git"
+          # GitHub's workflow token may write repository contents but cannot create,
+          # update, or delete workflow files. Preserve the current workflow directory
+          # exactly; the connector will install the tested CI workflow afterward.
           for child in list(repo.iterdir()):
-              if child == preserved_git:
+              if child.name in {".git", ".github"}:
+                  continue
+              if child.is_dir():
+                  shutil.rmtree(child)
+              else:
+                  child.unlink()
+
+          github_dir = repo / ".github"
+          github_dir.mkdir(exist_ok=True)
+          for child in list(github_dir.iterdir()):
+              if child.name == "workflows":
                   continue
               if child.is_dir():
                   shutil.rmtree(child)
@@ -63,6 +75,17 @@ jobs:
                   child.unlink()
 
           for child in source.iterdir():
+              if child.name == ".github":
+                  for github_child in child.iterdir():
+                      if github_child.name == "workflows":
+                          continue
+                      target = github_dir / github_child.name
+                      if github_child.is_dir():
+                          shutil.copytree(github_child, target, symlinks=True)
+                      else:
+                          shutil.copy2(github_child, target)
+                  continue
+
               target = repo / child.name
               if child.is_dir():
                   shutil.copytree(child, target, symlinks=True)
@@ -76,7 +99,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          git config user.name "Steven Zimmerman, CPA"
+          git config user.name "EffortlessSteven"
           git config user.email "15812269+EffortlessSteven@users.noreply.github.com"
           git add -A
           git diff --cached --quiet && exit 0
