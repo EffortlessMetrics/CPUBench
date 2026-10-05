@@ -1,4 +1,4 @@
-name: Export placement branch source
+name: Apply placement qualification
 
 on:
   push:
@@ -8,18 +8,37 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
-  export:
+  apply:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Archive source
-        shell: bash
-        run: git archive --format=tar.gz --output=cpubench-placement-source.tar.gz HEAD
-      - uses: actions/upload-artifact@v4
         with:
-          name: cpubench-placement-source
-          path: cpubench-placement-source.tar.gz
-          if-no-files-found: error
+          fetch-depth: 0
+
+      - name: Reassemble and verify patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat \
+            .bootstrap/placement.patch.xz.b64 \
+            .bootstrap/placement.patch.xz.b64.part-01 \
+            .bootstrap/placement.patch.xz.b64.part-02 \
+            | base64 -d | xz -d > /tmp/placement.patch
+          echo "a48c3ff413e340e792fed45583f745b2fa18e29a4c2729600e470bdfc6b0e406  /tmp/placement.patch" | sha256sum -c -
+          git apply --check /tmp/placement.patch
+
+      - name: Apply and commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          git apply /tmp/placement.patch
+          rm -rf .bootstrap
+          git diff --check
+          git config user.name "EffortlessSteven"
+          git config user.email "15812269+EffortlessSteven@users.noreply.github.com"
+          git add -A
+          git commit -m "feat: qualify placement and execution residency"
+          git push origin HEAD:feat/placement-residency
