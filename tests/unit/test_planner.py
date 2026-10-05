@@ -31,4 +31,5 @@ def test_smoke_plan_is_deterministic() -> None:
         loaded.pack_releases,
     )
     assert [item.attempt_id for item in first.items] == [item.attempt_id for item in second.items]
+    assert first.profile_id == loaded.profile.semantic_id
     assert len(first.items) >= 4

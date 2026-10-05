@@ -32,9 +32,15 @@ class ArtifactModel(StrictModel):
             exclude_none=True,
         )
 
+    def computed_semantic_id(self) -> str:
+        return semantic_id(self.artifact_kind, self.schema_version, self.semantic_payload())
+
+    def semantic_identity_is_valid(self) -> bool:
+        return self.semantic_id is not None and self.semantic_id == self.computed_semantic_id()
+
     def with_semantic_id(self) -> Self:
         data = self.model_dump(mode="python")
-        data["semantic_id"] = semantic_id(self.artifact_kind, self.schema_version, self.semantic_payload())
+        data["semantic_id"] = self.computed_semantic_id()
         return self.__class__.model_validate(data)
 
 

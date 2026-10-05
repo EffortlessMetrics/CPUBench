@@ -295,10 +295,14 @@ def collect_run_environment_receipt(campaign_id: str, machine: MachineReceipt) -
     except (AttributeError, OSError, NotImplementedError):
         pass
 
-    try:
-        load_average: list[float] = list(os.getloadavg())
-    except (AttributeError, OSError):
-        load_average = []
+    getloadavg = cast(Callable[[], tuple[float, float, float]] | None, getattr(os, "getloadavg", None))
+    if getloadavg is None:
+        load_average: list[float] = []
+    else:
+        try:
+            load_average = list(getloadavg())
+        except OSError:
+            load_average = []
 
     vm = psutil.virtual_memory()
     known_unknowns: list[str] = []

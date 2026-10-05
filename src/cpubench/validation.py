@@ -300,43 +300,80 @@ def _timer_outcome(
     if not timers or "unknown" in timers:
         return _result(obligation_id, ValidityOutcome.FAIL, "sample_timer_unknown")
 
-    for timer in timers:
+    timer_results: list[ObligationResult] = []
+    for timer in sorted(timers):
         qualification = qualifications.get(timer)
         if qualification is None:
             state = _machine_timer_capability(timer, machine)
             if state is None:
-                return _result(obligation_id, ValidityOutcome.INCONCLUSIVE, "sample_timer_not_mapped", f"timer={timer}")
-            if state == CapabilityState.FAILED:
-                return _result(obligation_id, ValidityOutcome.FAIL, "timer_capability_failed", f"timer={timer}")
-            if state in {CapabilityState.UNSUPPORTED, CapabilityState.UNKNOWN}:
-                return _result(obligation_id, ValidityOutcome.UNSUPPORTED, "timer_capability_unsupported", f"timer={timer}")
-            return _result(
-                obligation_id,
-                ValidityOutcome.INCONCLUSIVE,
-                "timer_control_missing",
-                f"timer={timer}; run the matching timer-overhead control in the same campaign",
-            )
-        if qualification.state == CapabilityState.FAILED:
-            return _result(obligation_id, ValidityOutcome.FAIL, qualification.reason_code, qualification.detail)
-        if qualification.state in {CapabilityState.UNSUPPORTED, CapabilityState.UNKNOWN}:
-            return _result(obligation_id, ValidityOutcome.UNSUPPORTED, qualification.reason_code, qualification.detail)
-        if qualification.state == CapabilityState.AVAILABLE_UNQUALIFIED:
-            return _result(obligation_id, ValidityOutcome.INCONCLUSIVE, qualification.reason_code, qualification.detail)
-        if attempt.family_id in {"controls.timer_overhead", "controls.native_timer_overhead"}:
-            # Calibration controls measure the threshold; applying that threshold
-            # back to the controls would make the qualification self-referential.
+                timer_results.append(
+                    _result(obligation_id, ValidityOutcome.INCONCLUSIVE, "sample_timer_not_mapped", f"timer={timer}")
+                )
+            elif state == CapabilityState.FAILED:
+                timer_results.append(
+                    _result(obligation_id, ValidityOutcome.FAIL, "timer_capability_failed", f"timer={timer}")
+                )
+            elif state in {CapabilityState.UNSUPPORTED, CapabilityState.UNKNOWN}:
+                timer_results.append(
+                    _result(obligation_id, ValidityOutcome.UNSUPPORTED, "timer_capability_unsupported", f"timer={timer}")
+                )
+            else:
+                timer_results.append(
+                    _result(
+                        obligation_id,
+                        ValidityOutcome.INCONCLUSIVE,
+                        "timer_control_missing",
+                        f"timer={timer}; run the matching timer-overhead control in the same campaign",
+                    )
+                )
             continue
+
+        if qualification.state == CapabilityState.FAILED:
+            timer_results.append(
+                _result(obligation_id, ValidityOutcome.FAIL, qualification.reason_code, qualification.detail)
+            )
+            continue
+        if qualification.state in {CapabilityState.UNSUPPORTED, CapabilityState.UNKNOWN}:
+            timer_results.append(
+                _result(obligation_id, ValidityOutcome.UNSUPPORTED, qualification.reason_code, qualification.detail)
+            )
+            continue
+        if qualification.state == CapabilityState.AVAILABLE_UNQUALIFIED:
+            timer_results.append(
+                _result(obligation_id, ValidityOutcome.INCONCLUSIVE, qualification.reason_code, qualification.detail)
+            )
+            continue
+        if attempt.family_id in _TIMER_CONTROL_FAMILIES:
+            timer_results.append(_result(obligation_id, ValidityOutcome.PASS, "timer_control_qualified"))
+            continue
+
         minimum = qualification.minimum_sample_duration_ns
         if minimum is None:
-            return _result(obligation_id, ValidityOutcome.INCONCLUSIVE, "timer_minimum_duration_missing")
-        too_short = [sample.elapsed_ns for sample in attempt.samples if sample.timer == timer and sample.elapsed_ns < minimum]
-        if too_short:
-            return _result(
-                obligation_id,
-                ValidityOutcome.FAIL,
-                "sample_below_minimum_timer_duration",
-                f"timer={timer}; minimum_ns={minimum}; observed_ns={too_short}",
+            timer_results.append(
+                _result(obligation_id, ValidityOutcome.INCONCLUSIVE, "timer_minimum_duration_missing")
             )
+            continue
+        too_short = [
+            sample.elapsed_ns
+            for sample in attempt.samples
+            if sample.timer == timer and sample.elapsed_ns < minimum
+        ]
+        if too_short:
+            timer_results.append(
+                _result(
+                    obligation_id,
+                    ValidityOutcome.FAIL,
+                    "sample_below_minimum_timer_duration",
+                    f"timer={timer}; minimum_ns={minimum}; observed_ns={too_short}",
+                )
+            )
+        else:
+            timer_results.append(_result(obligation_id, ValidityOutcome.PASS, "timer_control_qualified"))
+
+    for outcome in (ValidityOutcome.FAIL, ValidityOutcome.INCONCLUSIVE, ValidityOutcome.UNSUPPORTED):
+        matching = [result for result in timer_results if result.outcome == outcome]
+        if matching:
+            return matching[0]
     return _result(obligation_id, ValidityOutcome.PASS, "timer_control_qualified")
 
 
@@ -440,6 +477,10 @@ def validate_campaign(campaign_dir: Path, *, validity_view: str = "portable_elap
     plan = RunPlan.model_validate_json((campaign_dir / "run-plan.json").read_text(encoding="utf-8"))
     machine = MachineReceipt.model_validate_json((campaign_dir / "machine-receipt.json").read_text(encoding="utf-8"))
     profile = ProfileSpec.model_validate_json((campaign_dir / "profile.json").read_text(encoding="utf-8"))
+    if not profile.semantic_identity_is_valid():
+        raise ValueError("profile semantic identity does not match its persisted content")
+    if profile.semantic_id != plan.profile_id:
+        raise ValueError("profile does not match the frozen run plan")
     families = _load_families(campaign_dir)
     attempts = _load_attempts(campaign_dir)
     timer_qualifications = _derive_timer_qualifications(plan, attempts, profile, machine)

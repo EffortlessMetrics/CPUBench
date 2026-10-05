@@ -291,3 +291,40 @@ def test_python_timer_control_carries_warmup_reversal(monkeypatch: object, capsy
     output = capsys.readouterr().out.splitlines()  # type: ignore[attr-defined]
     sample = json.loads(output[-1])
     assert sample["non_monotonic_count"] == 1
+
+
+def test_timer_failure_precedes_unmapped_timer_regardless_of_iteration_order() -> None:
+    control_item = _item("control", "controls.timer_overhead")
+    qualifications = _derive_timer_qualifications(
+        _plan(control_item),
+        {"control": _attempt("control", elapsed_ns=10_000)},
+        _profile(ratio=100.0),
+        _machine(),
+    )
+    target = _attempt(
+        "target",
+        timer="unmapped.timer",
+        elapsed_ns=10_000,
+        completed_units=1,
+        family_id="memory.dependent_load_latency",
+    )
+    target = target.model_copy(
+        update={
+            "samples": [
+                target.samples[0],
+                target.samples[0].model_copy(
+                    update={
+                        "sample_index": 1,
+                        "timer": "python.time.monotonic_ns",
+                        "elapsed_ns": 1_000,
+                    }
+                ),
+            ],
+            "semantic_id": None,
+        }
+    ).with_semantic_id()
+
+    outcome = _timer_outcome(target, _machine(), qualifications)
+
+    assert outcome.outcome == ValidityOutcome.FAIL
+    assert outcome.reason_code == "sample_below_minimum_timer_duration"
