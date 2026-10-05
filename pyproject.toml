@@ -1,0 +1,100 @@
+[build-system]
+requires = ["setuptools>=75", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cpubench"
+version = "0.1.0a0"
+description = "Evidence-producing CPU review campaigns"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT OR Apache-2.0" }
+authors = [
+  { name = "Steven Zimmerman, CPA" }
+]
+keywords = ["benchmark", "cpu", "performance", "hardware", "evidence"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Environment :: Console",
+  "Intended Audience :: Developers",
+  "Intended Audience :: Science/Research",
+  "License :: OSI Approved :: Apache Software License",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: MacOS",
+  "Operating System :: Microsoft :: Windows",
+  "Operating System :: POSIX :: Linux",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: System :: Benchmark",
+]
+dependencies = [
+  "pydantic>=2.12,<3",
+  "psutil>=7,<8",
+  "PyYAML>=6,<7",
+  "rich>=14,<15",
+  "typer>=0.20,<1",
+]
+
+[project.optional-dependencies]
+dev = [
+  "mypy>=1.15,<2",
+  "pytest>=9,<10",
+  "pytest-cov>=7,<8",
+  "ruff>=0.13,<1",
+  "types-PyYAML>=6.0.12",
+]
+
+[project.scripts]
+cpubench = "cpubench.cli:main"
+
+[project.urls]
+Repository = "https://github.com/EffortlessMetrics/CPUBench"
+Issues = "https://github.com/EffortlessMetrics/CPUBench/issues"
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+cpubench = [
+  "resources/**/*.yaml",
+  "resources/**/*.yml",
+  "resources/**/*.json",
+  "resources/native/*.c",
+  "resources/native/CMakeLists.txt",
+]
+
+[tool.pytest.ini_options]
+addopts = "-ra --strict-markers"
+testpaths = ["tests"]
+markers = [
+  "native: requires a C compiler and CMake",
+]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 120
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F"]
+ignore = ["E501"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+warn_unused_ignores = true
+packages = ["cpubench"]
+
+[tool.coverage.run]
+source = ["cpubench"]
+branch = true
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true

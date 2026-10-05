@@ -1,0 +1,213 @@
+from pathlib import Path
+
+import pytest
+import yaml
+
+from cpubench.analysis import analyze_campaign
+from cpubench.campaign import execute_campaign, finalize_campaign, persist_runtime, prepare_runtime
+from cpubench.evidence import CampaignStore
+from cpubench.models import AttemptRecord, InstrumentRelease, PackRelease, RunPlan
+from cpubench.report import generate_report
+from cpubench.validation import validate_campaign
+
+
+def test_control_only_campaign_end_to_end(tmp_path: Path) -> None:
+    campaign_file = tmp_path / "campaign.yaml"
+    campaign_file.write_text(
+        yaml.safe_dump(
+            {
+                "schema_version": 1,
+                "artifact_kind": "campaign_spec",
+                "campaign_id": "e2e",
+                "title": "E2E",
+                "description": "Control-only end-to-end test.",
+                "profile": "profiles/smoke.yaml",
+                "packs": [{"pack": "packs/controls/pack.yaml"}],
+                "operating_mode": "characterization",
+                "implementation_policy": "native",
+                "placement": "scheduler_open",
+                "output_root": str(tmp_path / "runs"),
+                "schedule_seed": 1,
+                "public_claims_enabled": False,
+            },
+            sort_keys=False,
+        ),
+        encoding="utf-8",
+    )
+    runtime = prepare_runtime(campaign_file, resume=True)
+    persist_runtime(runtime)
+    instrument = InstrumentRelease.model_validate_json(
+        (runtime.store.root / "instrument-release.json").read_text(encoding="utf-8")
+    )
+    plan = RunPlan.model_validate_json((runtime.store.root / "run-plan.json").read_text(encoding="utf-8"))
+    pack_release = PackRelease.model_validate_json(
+        (runtime.store.root / "pack-releases" / "controls" / "release.json").read_text(encoding="utf-8")
+    )
+    assert plan.instrument_release_id == instrument.semantic_id
+    assert plan.pack_release_ids["controls"] == pack_release.semantic_id
+    counts = execute_campaign(runtime)
+    assert counts["completed"] == len(runtime.plan.items)
+    resumed = prepare_runtime(campaign_file, resume=True)
+    persist_runtime(resumed)
+    resumed_counts = execute_campaign(resumed, resume=True)
+    assert resumed_counts["completed"] == len(runtime.plan.items)
+    validation = validate_campaign(runtime.store.root)
+    assert validation.coverage["completed"] == len(runtime.plan.items)
+    analysis = analyze_campaign(runtime.store.root)
+    assert analysis.points
+    report = generate_report(runtime.store.root)
+    assert report.exists()
+    attempt_path = next((runtime.store.root / "attempts").glob("*/attempt.json"))
+    stored_attempt = AttemptRecord.model_validate_json(attempt_path.read_text(encoding="utf-8"))
+    recomputed = stored_attempt.model_copy(update={"semantic_id": None}).with_semantic_id()
+    assert stored_attempt.semantic_id == recomputed.semantic_id
+    assert stored_attempt.placement["selector"] == "scheduler_open"
+    assert stored_attempt.run_environment_receipt_id
+    environment_digest = stored_attempt.run_environment_receipt_id.split(":", 1)[-1]
+    assert (runtime.store.root / "run-environments" / f"{environment_digest}.json").exists()
+    finalize_campaign(runtime.store.root)
+    assert CampaignStore(runtime.store.root).verify().valid
+
+
+def test_work_correct_view_is_usable_without_measurement_requirements(tmp_path: Path) -> None:
+    campaign_file = tmp_path / "campaign.yaml"
+    campaign_file.write_text(
+        yaml.safe_dump(
+            {
+                "schema_version": 1,
+                "artifact_kind": "campaign_spec",
+                "campaign_id": "work-view",
+                "title": "Work view",
+                "description": "Validate the work-only projection.",
+                "profile": "profiles/smoke.yaml",
+                "packs": [{"pack": "packs/controls/pack.yaml"}],
+                "operating_mode": "characterization",
+                "implementation_policy": "native",
+                "placement": "scheduler_open",
+                "output_root": str(tmp_path / "work-runs"),
+                "schedule_seed": 2,
+                "public_claims_enabled": False,
+            },
+            sort_keys=False,
+        ),
+        encoding="utf-8",
+    )
+    runtime = prepare_runtime(campaign_file, resume=True)
+    persist_runtime(runtime)
+    execute_campaign(runtime)
+    validation = validate_campaign(runtime.store.root, validity_view="work_correct")
+    assert all(item.comparability.value == "pass" for item in validation.attempts)
+
+
+def test_campaign_finalization_rejects_incomplete_bundle(tmp_path: Path) -> None:
+    campaign_file = tmp_path / "incomplete.yaml"
+    campaign_file.write_text(
+        yaml.safe_dump(
+            {
+                "schema_version": 1,
+                "artifact_kind": "campaign_spec",
+                "campaign_id": "incomplete",
+                "title": "Incomplete",
+                "description": "Finalization must fail before execution and derived evidence.",
+                "profile": "profiles/smoke.yaml",
+                "packs": [{"pack": "packs/controls/pack.yaml"}],
+                "operating_mode": "characterization",
+                "implementation_policy": "native",
+                "placement": "scheduler_open",
+                "output_root": str(tmp_path / "incomplete-runs"),
+                "schedule_seed": 3,
+                "public_claims_enabled": False,
+            },
+            sort_keys=False,
+        ),
+        encoding="utf-8",
+    )
+    runtime = prepare_runtime(campaign_file, resume=True)
+    persist_runtime(runtime)
+    try:
+        finalize_campaign(runtime.store.root)
+    except RuntimeError as exc:
+        assert "required artifacts are missing" in str(exc)
+    else:
+        raise AssertionError("incomplete campaign unexpectedly finalized")
+
+
+def test_resume_rejects_changed_machine_identity(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    campaign_file = tmp_path / "machine-change.yaml"
+    campaign_file.write_text(
+        yaml.safe_dump(
+            {
+                "schema_version": 1,
+                "artifact_kind": "campaign_spec",
+                "campaign_id": "machine-change",
+                "title": "Machine change",
+                "description": "Resume must not cross machine identity.",
+                "profile": "profiles/smoke.yaml",
+                "packs": [{"pack": "packs/controls/pack.yaml"}],
+                "operating_mode": "characterization",
+                "implementation_policy": "native",
+                "placement": "scheduler_open",
+                "output_root": str(tmp_path / "machine-change-runs"),
+                "schedule_seed": 4,
+                "public_claims_enabled": False,
+            },
+            sort_keys=False,
+        ),
+        encoding="utf-8",
+    )
+    runtime = prepare_runtime(campaign_file, resume=True)
+    persist_runtime(runtime)
+    original = runtime.machine
+    changed = original.model_copy(
+        update={
+            "cpu": {**original.cpu, "processor": "different-test-processor"},
+            "semantic_id": None,
+        }
+    ).with_semantic_id()
+    monkeypatch.setattr("cpubench.campaign.collect_machine_receipt", lambda: changed)
+    with pytest.raises(RuntimeError, match="current machine identity differs"):
+        prepare_runtime(campaign_file, resume=True)
+
+
+def test_finalization_rejects_attempt_that_differs_from_plan(tmp_path: Path) -> None:
+    campaign_file = tmp_path / "tampered.yaml"
+    campaign_file.write_text(
+        yaml.safe_dump(
+            {
+                "schema_version": 1,
+                "artifact_kind": "campaign_spec",
+                "campaign_id": "tampered",
+                "title": "Tampered",
+                "description": "Attempt records must remain joined to the frozen plan.",
+                "profile": "profiles/smoke.yaml",
+                "packs": [{"pack": "packs/controls/pack.yaml"}],
+                "operating_mode": "characterization",
+                "implementation_policy": "native",
+                "placement": "scheduler_open",
+                "output_root": str(tmp_path / "tampered-runs"),
+                "schedule_seed": 5,
+                "public_claims_enabled": False,
+            },
+            sort_keys=False,
+        ),
+        encoding="utf-8",
+    )
+    runtime = prepare_runtime(campaign_file, resume=True)
+    persist_runtime(runtime)
+    execute_campaign(runtime)
+    validate_campaign(runtime.store.root)
+    analyze_campaign(runtime.store.root)
+    generate_report(runtime.store.root)
+
+    attempt_path = next((runtime.store.root / "attempts").glob("*/attempt.json"))
+    attempt = AttemptRecord.model_validate_json(attempt_path.read_text(encoding="utf-8"))
+    tampered = attempt.model_copy(
+        update={
+            "requested_parameters": {**attempt.requested_parameters, "tampered": True},
+            "semantic_id": None,
+        }
+    ).with_semantic_id()
+    attempt_path.write_text(tampered.model_dump_json(indent=2), encoding="utf-8")
+
+    with pytest.raises(RuntimeError, match="attempt record differs from frozen plan"):
+        finalize_campaign(runtime.store.root)

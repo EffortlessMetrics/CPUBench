@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+dist/
+build/
+.venv/
+
+# CPUBench evidence and private packs
+.cpubench/
+runs/
+private-packs/
+restricted-assets.yaml
+
+# Native build products
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+*.o
+*.obj
+*.exe
+
+# Editors and operating systems
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

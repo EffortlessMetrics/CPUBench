@@ -1,0 +1,19 @@
+schema_version: 1
+artifact_kind: campaign_spec
+campaign_id: sqlite-anchor
+title: SQLite irregular-memory application anchor
+description: >-
+  A small application campaign joining controlled memory-access families with
+  a warm indexed SQLite lookup workload. It is an application-stack result,
+  not a pure CPU-core score.
+profile: profiles/smoke.yaml
+packs:
+  - pack: packs/controls/pack.yaml
+  - pack: packs/memory-access/pack.yaml
+  - pack: packs/application-sqlite/pack.yaml
+operating_mode: characterization
+implementation_policy: native
+placement: scheduler_open
+output_root: .cpubench/runs
+schedule_seed: 20261005
+public_claims_enabled: false

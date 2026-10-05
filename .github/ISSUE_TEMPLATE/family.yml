@@ -1,0 +1,54 @@
+name: Benchmark family proposal
+description: Propose one bounded measurement question, its controls, and its proof obligations.
+title: "family: "
+labels: [benchmark-family]
+body:
+  - type: textarea
+    id: question
+    attributes:
+      label: Measurement question
+      description: What bounded property, regime, or useful task is being measured?
+    validations:
+      required: true
+  - type: textarea
+    id: work
+    attributes:
+      label: Useful-work and output contract
+      description: Define the unit of work, input population, required output, and quality/tolerance.
+    validations:
+      required: true
+  - type: textarea
+    id: intervention
+    attributes:
+      label: Intervention and invariants
+      description: What changes across forms, and what must remain fixed?
+    validations:
+      required: true
+  - type: textarea
+    id: result
+    attributes:
+      label: Primary curve, matrix, or service boundary
+      description: State the raw measurements and derived result shape.
+    validations:
+      required: true
+  - type: textarea
+    id: controls
+    attributes:
+      label: Controls and mutants
+      description: Include positive witnesses, construct-preserving controls, inverses, and known-bad implementations.
+    validations:
+      required: true
+  - type: textarea
+    id: relevance
+    attributes:
+      label: Application or decision relevance
+      description: What real workload or decision is this intended to explain? What does it not support?
+    validations:
+      required: true
+  - type: textarea
+    id: rights
+    attributes:
+      label: Sources and rights
+      description: Identify donor code/data, exact revisions, licenses, and disclosure limits.
+    validations:
+      required: true

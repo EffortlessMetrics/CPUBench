@@ -1,0 +1,116 @@
+{
+  "$defs": {
+    "DisclosureState": {
+      "enum": [
+        "development_public",
+        "frozen_public",
+        "challenge_private",
+        "vendor_shared",
+        "remediation_holdout",
+        "retired_public",
+        "restricted_licensed"
+      ],
+      "title": "DisclosureState",
+      "type": "string"
+    },
+    "PackRole": {
+      "enum": [
+        "calibration",
+        "public_reference",
+        "challenge",
+        "application",
+        "diagnostic",
+        "regression",
+        "bridge"
+      ],
+      "title": "PackRole",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "artifact_kind": {
+      "const": "pack_release",
+      "default": "pack_release",
+      "title": "Artifact Kind",
+      "type": "string"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "disclosure": {
+      "$ref": "#/$defs/DisclosureState"
+    },
+    "family_spec_ids": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Family Spec Ids",
+      "type": "object"
+    },
+    "family_versions": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Family Versions",
+      "type": "object"
+    },
+    "pack_id": {
+      "title": "Pack Id",
+      "type": "string"
+    },
+    "pack_spec_id": {
+      "title": "Pack Spec Id",
+      "type": "string"
+    },
+    "pack_version": {
+      "title": "Pack Version",
+      "type": "string"
+    },
+    "parent_ids": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Parent Ids",
+      "type": "array"
+    },
+    "role": {
+      "$ref": "#/$defs/PackRole"
+    },
+    "schema_version": {
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "semantic_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Semantic Id"
+    },
+    "title": {
+      "title": "Title",
+      "type": "string"
+    }
+  },
+  "required": [
+    "pack_id",
+    "pack_version",
+    "title",
+    "role",
+    "disclosure",
+    "pack_spec_id",
+    "family_spec_ids",
+    "family_versions"
+  ],
+  "title": "PackRelease",
+  "type": "object"
+}

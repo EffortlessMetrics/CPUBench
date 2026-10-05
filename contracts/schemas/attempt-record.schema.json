@@ -1,0 +1,248 @@
+{
+  "$defs": {
+    "AttemptState": {
+      "enum": [
+        "planned",
+        "completed",
+        "unsupported",
+        "incompatible",
+        "invalid_work",
+        "instrument_failed",
+        "execution_failed",
+        "timed_out",
+        "aborted",
+        "incomplete"
+      ],
+      "title": "AttemptState",
+      "type": "string"
+    },
+    "SampleRecord": {
+      "additionalProperties": false,
+      "properties": {
+        "checksum": {
+          "title": "Checksum",
+          "type": "string"
+        },
+        "completed_units": {
+          "exclusiveMinimum": 0,
+          "title": "Completed Units",
+          "type": "integer"
+        },
+        "elapsed_ns": {
+          "exclusiveMinimum": 0,
+          "title": "Elapsed Ns",
+          "type": "integer"
+        },
+        "metrics": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "boolean"
+              }
+            ]
+          },
+          "title": "Metrics",
+          "type": "object"
+        },
+        "sample_index": {
+          "title": "Sample Index",
+          "type": "integer"
+        },
+        "timer": {
+          "title": "Timer",
+          "type": "string"
+        }
+      },
+      "required": [
+        "sample_index",
+        "elapsed_ns",
+        "completed_units",
+        "checksum",
+        "timer"
+      ],
+      "title": "SampleRecord",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "artifact_kind": {
+      "const": "attempt_record",
+      "default": "attempt_record",
+      "title": "Artifact Kind",
+      "type": "string"
+    },
+    "attempt_id": {
+      "title": "Attempt Id",
+      "type": "string"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "detail": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Detail"
+    },
+    "effective_parameters": {
+      "additionalProperties": true,
+      "title": "Effective Parameters",
+      "type": "object"
+    },
+    "family_id": {
+      "title": "Family Id",
+      "type": "string"
+    },
+    "finished_at": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Finished At"
+    },
+    "parent_ids": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Parent Ids",
+      "type": "array"
+    },
+    "placement": {
+      "additionalProperties": true,
+      "title": "Placement",
+      "type": "object"
+    },
+    "point_id": {
+      "title": "Point Id",
+      "type": "string"
+    },
+    "provider_id": {
+      "title": "Provider Id",
+      "type": "string"
+    },
+    "provider_stderr": {
+      "default": "",
+      "title": "Provider Stderr",
+      "type": "string"
+    },
+    "provider_stdout": {
+      "default": "",
+      "title": "Provider Stdout",
+      "type": "string"
+    },
+    "reason_code": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Reason Code"
+    },
+    "requested_parameters": {
+      "additionalProperties": true,
+      "title": "Requested Parameters",
+      "type": "object"
+    },
+    "run_environment_receipt_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Run Environment Receipt Id"
+    },
+    "samples": {
+      "items": {
+        "$ref": "#/$defs/SampleRecord"
+      },
+      "title": "Samples",
+      "type": "array"
+    },
+    "schema_version": {
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "semantic_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Semantic Id"
+    },
+    "started_at": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Started At"
+    },
+    "state": {
+      "$ref": "#/$defs/AttemptState"
+    },
+    "warnings": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Warnings",
+      "type": "array"
+    },
+    "work_output": {
+      "additionalProperties": true,
+      "title": "Work Output",
+      "type": "object"
+    }
+  },
+  "required": [
+    "attempt_id",
+    "state",
+    "family_id",
+    "point_id",
+    "provider_id"
+  ],
+  "title": "AttemptRecord",
+  "type": "object"
+}

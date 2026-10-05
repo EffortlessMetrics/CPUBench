@@ -1,0 +1,136 @@
+schema_version: 1
+status_date: 2026-10-04
+
+workloads:
+  - workload_id: controls.timer_overhead
+    family_version: 0.1.0
+    source: first_party
+    original_purpose: qualify the cost and structure of paired monotonic observations
+    timed_region: repeated monotonic clock reads
+    correctness: completed-unit count and retained accumulated delta
+    primary_metric: ns_per_unit
+    release_role: calibration
+    implementation: python-control
+    status: implemented_alpha
+    claim_boundary:
+      - not an instruction-latency benchmark
+      - not proof of cross-platform timer equivalence
+
+  - workload_id: controls.sleep_interval
+    family_version: 0.1.0
+    source: first_party
+    original_purpose: sanity-check interval ordering at millisecond scale
+    timed_region: operating-system sleep call
+    correctness: requested interval identity and one completed unit
+    primary_metric: elapsed_ns
+    release_role: calibration
+    implementation: python-control
+    status: implemented_alpha
+    claim_boundary:
+      - includes scheduler and sleep behavior
+      - not CPU performance
+
+  - workload_id: memory.dependent_load_latency
+    family_version: 0.1.0
+    source: first_party_reimplementation_informed_by_public_prior_art
+    reference_sources:
+      - cnc-memory-latency
+      - uarch-bench
+      - google-platform-benchmarks
+      - nanobench
+    original_purpose: expose load-to-use latency across working-set regions
+    timed_region: one serial randomized indexed-load chain
+    correctness:
+      - generated cycle covers the working set
+      - traversal-derived checksum
+      - exact completed load count
+    primary_metric: ns_per_load
+    release_role: public_reference_candidate
+    implementation: native-c11-v0
+    status: implemented_unqualified
+    next_evidence:
+      - native mutants
+      - cross-tool checks
+      - multi-machine curves
+      - minimum-duration qualification
+
+  - workload_id: memory.memory_level_parallelism
+    family_version: 0.1.0
+    source: first_party
+    reference_sources:
+      - uarch-bench
+      - google-platform-benchmarks
+    original_purpose: expose overlap of independent cache-miss chains
+    timed_region: fixed total indexed loads across 1, 2, 4, 8, or 16 disjoint chains
+    correctness:
+      - disjoint cycle coverage
+      - every chain contributes to checksum
+      - fixed total useful load accounting
+    primary_metrics:
+      - loads_per_second
+      - ns_per_load
+    release_role: public_reference_candidate
+    implementation: native-c11-v0
+    status: implemented_unqualified
+    next_evidence:
+      - shared-dependency mutant
+      - fixed-memory-region controls
+      - cross-machine saturation curves
+
+  - workload_id: integrity.identity_probe
+    family_version: 0.1.0-development
+    source: first_party
+    original_purpose: qualify identity-sensitive contrast analysis
+    variants:
+      - public
+      - alias
+    providers:
+      - known_honest
+      - known_gamed
+    primary_metric: matched median elapsed-time ratio
+    release_role: instrument_qualification
+    status: implemented_detector_self_test
+    claim_boundary:
+      - not a hardware-vendor finding
+      - does not infer motive
+
+  - workload_id: topology.atomic_handoff_latency
+    source: planned_reimplementation
+    reference_sources:
+      - cnc-tools
+      - core-to-core-latency
+    release_role: diagnostic_and_public_reference_candidate
+    status: planned
+
+  - workload_id: coherence.false_sharing_penalty
+    source: planned_first_party
+    release_role: controlled_principle
+    status: planned
+
+  - workload_id: application.irregular_memory_anchor
+    source: unresolved_selection
+    candidates:
+      - hash_table_population
+      - graph_traversal
+      - sqlite_index_or_query
+    release_role: application
+    status: planned
+
+  - workload_id: ian_2022_suite_inventory
+    source: ian-2022-suite
+    status: blocked_on_intake
+    required_fields:
+      - historical purpose
+      - timed region
+      - input population
+      - correctness mechanism
+      - platform/compiler assumptions
+      - known noise/anomalies
+      - historical retain/remove judgment
+      - modern disposition
+
+  - workload_id: spec_private_plane
+    source: licensed-spec-installation
+    status: blocked_on_product_inventory
+    release_role: private_application
+    implementation_policy: official_tool_adapter_only

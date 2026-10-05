@@ -1,0 +1,136 @@
+{
+  "$defs": {
+    "CampaignPackRef": {
+      "additionalProperties": false,
+      "properties": {
+        "pack": {
+          "title": "Pack",
+          "type": "string"
+        }
+      },
+      "required": [
+        "pack"
+      ],
+      "title": "CampaignPackRef",
+      "type": "object"
+    },
+    "ImplementationPolicy": {
+      "enum": [
+        "exact",
+        "portable",
+        "native",
+        "tuned",
+        "product"
+      ],
+      "title": "ImplementationPolicy",
+      "type": "string"
+    },
+    "OperatingMode": {
+      "enum": [
+        "product",
+        "characterization",
+        "mechanism"
+      ],
+      "title": "OperatingMode",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "artifact_kind": {
+      "const": "campaign_spec",
+      "default": "campaign_spec",
+      "title": "Artifact Kind",
+      "type": "string"
+    },
+    "campaign_id": {
+      "title": "Campaign Id",
+      "type": "string"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "description": {
+      "title": "Description",
+      "type": "string"
+    },
+    "implementation_policy": {
+      "$ref": "#/$defs/ImplementationPolicy",
+      "default": "native"
+    },
+    "operating_mode": {
+      "$ref": "#/$defs/OperatingMode",
+      "default": "characterization"
+    },
+    "output_root": {
+      "default": ".cpubench/runs",
+      "title": "Output Root",
+      "type": "string"
+    },
+    "packs": {
+      "items": {
+        "$ref": "#/$defs/CampaignPackRef"
+      },
+      "title": "Packs",
+      "type": "array"
+    },
+    "parent_ids": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Parent Ids",
+      "type": "array"
+    },
+    "placement": {
+      "default": "scheduler_open",
+      "title": "Placement",
+      "type": "string"
+    },
+    "profile": {
+      "title": "Profile",
+      "type": "string"
+    },
+    "public_claims_enabled": {
+      "default": false,
+      "title": "Public Claims Enabled",
+      "type": "boolean"
+    },
+    "schedule_seed": {
+      "default": 1,
+      "title": "Schedule Seed",
+      "type": "integer"
+    },
+    "schema_version": {
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "semantic_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Semantic Id"
+    },
+    "title": {
+      "title": "Title",
+      "type": "string"
+    }
+  },
+  "required": [
+    "campaign_id",
+    "title",
+    "description",
+    "profile",
+    "packs"
+  ],
+  "title": "CampaignSpec",
+  "type": "object"
+}

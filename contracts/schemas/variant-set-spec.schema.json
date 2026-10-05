@@ -1,0 +1,176 @@
+{
+  "$defs": {
+    "VariantMember": {
+      "additionalProperties": false,
+      "properties": {
+        "expected_variation": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Expected Variation",
+          "type": "array"
+        },
+        "family_id": {
+          "title": "Family Id",
+          "type": "string"
+        },
+        "form_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Form Id"
+        },
+        "implementation_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Implementation Id"
+        },
+        "label": {
+          "title": "Label",
+          "type": "string"
+        },
+        "point_id": {
+          "title": "Point Id",
+          "type": "string"
+        },
+        "preserves": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Preserves",
+          "type": "array"
+        },
+        "role": {
+          "enum": [
+            "baseline",
+            "challenge",
+            "control"
+          ],
+          "title": "Role",
+          "type": "string"
+        },
+        "transformation": {
+          "title": "Transformation",
+          "type": "string"
+        }
+      },
+      "required": [
+        "label",
+        "role",
+        "family_id",
+        "point_id",
+        "transformation",
+        "preserves"
+      ],
+      "title": "VariantMember",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "artifact_kind": {
+      "const": "variant_set_spec",
+      "default": "variant_set_spec",
+      "title": "Artifact Kind",
+      "type": "string"
+    },
+    "baseline_label": {
+      "title": "Baseline Label",
+      "type": "string"
+    },
+    "claim_boundary": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Claim Boundary",
+      "type": "array"
+    },
+    "comparison_metric": {
+      "title": "Comparison Metric",
+      "type": "string"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "members": {
+      "items": {
+        "$ref": "#/$defs/VariantMember"
+      },
+      "title": "Members",
+      "type": "array"
+    },
+    "parent_ids": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Parent Ids",
+      "type": "array"
+    },
+    "question": {
+      "title": "Question",
+      "type": "string"
+    },
+    "schema_version": {
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "semantic_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Semantic Id"
+    },
+    "threshold": {
+      "exclusiveMinimum": 0,
+      "title": "Threshold",
+      "type": "number"
+    },
+    "title": {
+      "title": "Title",
+      "type": "string"
+    },
+    "variant_set_id": {
+      "title": "Variant Set Id",
+      "type": "string"
+    },
+    "variant_set_version": {
+      "title": "Variant Set Version",
+      "type": "string"
+    }
+  },
+  "required": [
+    "variant_set_id",
+    "variant_set_version",
+    "title",
+    "question",
+    "baseline_label",
+    "members",
+    "comparison_metric",
+    "threshold",
+    "claim_boundary"
+  ],
+  "title": "VariantSetSpec",
+  "type": "object"
+}

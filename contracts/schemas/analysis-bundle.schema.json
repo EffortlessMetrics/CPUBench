@@ -1,0 +1,152 @@
+{
+  "$defs": {
+    "PointEstimate": {
+      "additionalProperties": false,
+      "properties": {
+        "bootstrap_resamples": {
+          "minimum": 0,
+          "title": "Bootstrap Resamples",
+          "type": "integer"
+        },
+        "ci95_high_ns_per_unit": {
+          "title": "Ci95 High Ns Per Unit",
+          "type": "number"
+        },
+        "ci95_low_ns_per_unit": {
+          "title": "Ci95 Low Ns Per Unit",
+          "type": "number"
+        },
+        "eligible_attempts": {
+          "title": "Eligible Attempts",
+          "type": "integer"
+        },
+        "family_id": {
+          "title": "Family Id",
+          "type": "string"
+        },
+        "form_id": {
+          "title": "Form Id",
+          "type": "string"
+        },
+        "mad_ns_per_unit": {
+          "title": "Mad Ns Per Unit",
+          "type": "number"
+        },
+        "max_ns_per_unit": {
+          "title": "Max Ns Per Unit",
+          "type": "number"
+        },
+        "median_ns_per_unit": {
+          "title": "Median Ns Per Unit",
+          "type": "number"
+        },
+        "median_units_per_second": {
+          "title": "Median Units Per Second",
+          "type": "number"
+        },
+        "min_ns_per_unit": {
+          "title": "Min Ns Per Unit",
+          "type": "number"
+        },
+        "parameters": {
+          "additionalProperties": true,
+          "title": "Parameters",
+          "type": "object"
+        },
+        "point_id": {
+          "title": "Point Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "family_id",
+        "point_id",
+        "form_id",
+        "parameters",
+        "eligible_attempts",
+        "median_ns_per_unit",
+        "ci95_low_ns_per_unit",
+        "ci95_high_ns_per_unit",
+        "mad_ns_per_unit",
+        "min_ns_per_unit",
+        "max_ns_per_unit",
+        "median_units_per_second",
+        "bootstrap_resamples"
+      ],
+      "title": "PointEstimate",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "analysis_policy": {
+      "title": "Analysis Policy",
+      "type": "string"
+    },
+    "artifact_kind": {
+      "const": "analysis_bundle",
+      "default": "analysis_bundle",
+      "title": "Artifact Kind",
+      "type": "string"
+    },
+    "campaign_id": {
+      "title": "Campaign Id",
+      "type": "string"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "notes": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Notes",
+      "type": "array"
+    },
+    "parent_ids": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Parent Ids",
+      "type": "array"
+    },
+    "points": {
+      "items": {
+        "$ref": "#/$defs/PointEstimate"
+      },
+      "title": "Points",
+      "type": "array"
+    },
+    "schema_version": {
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "semantic_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Semantic Id"
+    },
+    "validation_bundle_id": {
+      "title": "Validation Bundle Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "campaign_id",
+    "validation_bundle_id",
+    "analysis_policy",
+    "points"
+  ],
+  "title": "AnalysisBundle",
+  "type": "object"
+}

@@ -1,0 +1,10 @@
+schema_version: 1
+artifact_kind: profile_spec
+profile_id: characterize
+title: Full characterization campaign
+attempts_per_point: 10
+samples_per_attempt: 10
+warmup_samples: 3
+unit_scale: 2.0
+timeout_seconds: 600
+randomized_interleaving: true

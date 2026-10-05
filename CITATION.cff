@@ -1,0 +1,17 @@
+cff-version: 1.2.0
+message: >-
+  Cite the exact CPUBench release, campaign bundle, instrument release, and pack
+  releases used for a result. The repository alone is not the evaluated object.
+title: CPUBench
+version: 0.1.0a0
+type: software
+authors:
+  - family-names: Zimmerman
+    given-names: Steven
+repository-code: https://github.com/EffortlessMetrics/CPUBench
+license: Apache-2.0 OR MIT
+keywords:
+  - CPU benchmarking
+  - performance measurement
+  - hardware review
+  - reproducible evidence

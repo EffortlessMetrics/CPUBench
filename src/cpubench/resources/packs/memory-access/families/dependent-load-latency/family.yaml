@@ -1,0 +1,98 @@
+schema_version: 1
+artifact_kind: family_spec
+family_id: memory.dependent_load_latency
+family_version: 0.1.0
+title: Dependent load latency by working set
+surface: controlled_principle
+question: How does load-to-use latency change as a randomized dependent working set crosses effective storage regions?
+evaluated_object: fixed_source_native_binary
+provider_id: native-c11
+work_contract:
+  useful_unit: one validated dependent indexed load
+  input_population: deterministic single-cycle randomized permutations
+  required_output: final index checksum and exact completed load count
+  quality_or_tolerance: exact integer work validation
+
+demand_geometry:
+  dependency: serial
+  locality: randomized
+  arithmetic_intensity: minimal
+  access_width_bytes: 4
+intervention_axes:
+  - working_set_bytes
+invariants:
+  - one dependency chain
+  - total completed loads within a profile
+  - index representation
+  - permutation generator
+  - output validation
+  - timed region
+forms:
+  - random_pointer_chase
+points:
+  - point_id: ws-32k
+    parameters: {working_set_bytes: 32768, chains: 1, completed_units: 2000000, seed: 101}
+    profiles: [smoke, qualify, review, characterize]
+    tags: [cache]
+  - point_id: ws-256k
+    parameters: {working_set_bytes: 262144, chains: 1, completed_units: 2000000, seed: 102}
+    profiles: [qualify, review, characterize]
+    tags: [cache]
+  - point_id: ws-2m
+    parameters: {working_set_bytes: 2097152, chains: 1, completed_units: 2000000, seed: 103}
+    profiles: [smoke, qualify, review, characterize]
+    tags: [cache]
+  - point_id: ws-16m
+    parameters: {working_set_bytes: 16777216, chains: 1, completed_units: 2000000, seed: 104}
+    profiles: [qualify, review, characterize]
+    tags: [memory]
+  - point_id: ws-64m
+    parameters: {working_set_bytes: 67108864, chains: 1, completed_units: 2000000, seed: 105}
+    profiles: [review, characterize]
+    tags: [memory]
+  - point_id: ws-256m
+    parameters: {working_set_bytes: 268435456, chains: 1, completed_units: 2000000, seed: 106}
+    profiles: [characterize]
+    tags: [memory]
+timing_authority: provider_elapsed
+supported_modes: [characterization, mechanism]
+primary_metrics:
+  - ns_per_load
+diagnostic_metrics:
+  - elapsed_ns
+  - checksum
+  - working_set_bytes
+obligations:
+  work.completed_units:
+    severity: blocking
+    description: The exact number of dependent loads must be reported.
+  work.output_checksum:
+    severity: blocking
+    description: A traversal-derived checksum must survive the timed loop.
+  work.valid_cycle:
+    severity: blocking
+    description: Input generation must produce one cycle spanning the declared working set.
+  timing.setup_excluded:
+    severity: blocking
+    description: Allocation, shuffle, cycle validation, and setup must be outside the timed region.
+  instrument.timer_qualified:
+    severity: blocking
+    description: A monotonic interval timer must be used.
+  placement.hard_affinity:
+    severity: required_for_view
+    description: Pinned characterization views require verified affinity.
+    views: [pinned_characterization]
+mutants:
+  - mutant_id: locality.result_unused
+    description: Traversal output is discarded, allowing dead-code elimination.
+    expected_failures: [work.output_checksum]
+  - mutant_id: locality.setup_timed
+    description: Input generation is included inside the timed region.
+    expected_failures: [timing.setup_excluded]
+  - mutant_id: locality.sequential_mislabeled
+    description: A sequential chain is labelled randomized.
+    expected_failures: [work.valid_cycle]
+claim_boundary:
+  - does_not_measure_sustainable_streaming_bandwidth
+  - does_not_measure_memory_level_parallelism
+  - does_not_establish_application_performance

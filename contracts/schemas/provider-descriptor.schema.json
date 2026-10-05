@@ -1,0 +1,116 @@
+{
+  "$defs": {
+    "FamilyDescriptor": {
+      "additionalProperties": false,
+      "properties": {
+        "capabilities": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Capabilities",
+          "type": "array"
+        },
+        "family_id": {
+          "title": "Family Id",
+          "type": "string"
+        },
+        "implementation_id": {
+          "title": "Implementation Id",
+          "type": "string"
+        },
+        "supported_arch": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Supported Arch",
+          "type": "array"
+        },
+        "supported_os": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Supported Os",
+          "type": "array"
+        },
+        "timing_authority": {
+          "title": "Timing Authority",
+          "type": "string"
+        }
+      },
+      "required": [
+        "family_id",
+        "implementation_id",
+        "supported_os",
+        "supported_arch",
+        "timing_authority"
+      ],
+      "title": "FamilyDescriptor",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "artifact_kind": {
+      "const": "provider_descriptor",
+      "default": "provider_descriptor",
+      "title": "Artifact Kind",
+      "type": "string"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "families": {
+      "items": {
+        "$ref": "#/$defs/FamilyDescriptor"
+      },
+      "title": "Families",
+      "type": "array"
+    },
+    "parent_ids": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Parent Ids",
+      "type": "array"
+    },
+    "protocol_version": {
+      "default": 1,
+      "title": "Protocol Version",
+      "type": "integer"
+    },
+    "provider_id": {
+      "title": "Provider Id",
+      "type": "string"
+    },
+    "provider_version": {
+      "title": "Provider Version",
+      "type": "string"
+    },
+    "schema_version": {
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "semantic_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Semantic Id"
+    }
+  },
+  "required": [
+    "provider_id",
+    "provider_version",
+    "families"
+  ],
+  "title": "ProviderDescriptor",
+  "type": "object"
+}

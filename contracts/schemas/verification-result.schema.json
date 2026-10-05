@@ -1,0 +1,40 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "checked_files": {
+      "title": "Checked Files",
+      "type": "integer"
+    },
+    "mismatches": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Mismatches",
+      "type": "array"
+    },
+    "missing": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Missing",
+      "type": "array"
+    },
+    "unexpected": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Unexpected",
+      "type": "array"
+    },
+    "valid": {
+      "title": "Valid",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "valid",
+    "checked_files"
+  ],
+  "title": "VerificationResult",
+  "type": "object"
+}

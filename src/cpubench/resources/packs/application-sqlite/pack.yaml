@@ -1,0 +1,9 @@
+schema_version: 1
+artifact_kind: pack_spec
+pack_id: application-sqlite
+pack_version: 0.1.0
+title: SQLite indexed lookup application anchor
+role: application
+disclosure: development_public
+families:
+  - family: packs/application-sqlite/families/index-lookup/family.yaml

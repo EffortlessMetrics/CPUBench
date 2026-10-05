@@ -1,0 +1,10 @@
+schema_version: 1
+artifact_kind: profile_spec
+profile_id: qualify
+title: Instrument qualification campaign
+attempts_per_point: 5
+samples_per_attempt: 8
+warmup_samples: 2
+unit_scale: 0.25
+timeout_seconds: 120
+randomized_interleaving: true

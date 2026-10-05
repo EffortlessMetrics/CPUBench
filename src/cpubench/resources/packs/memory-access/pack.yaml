@@ -1,0 +1,10 @@
+schema_version: 1
+artifact_kind: pack_spec
+pack_id: memory-access
+pack_version: 0.1.0
+title: Locality and memory-level parallelism
+role: public_reference
+disclosure: development_public
+families:
+  - family: packs/memory-access/families/dependent-load-latency/family.yaml
+  - family: packs/memory-access/families/memory-level-parallelism/family.yaml

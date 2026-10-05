@@ -1,0 +1,112 @@
+schema_version: 1
+status_date: 2026-10-04
+policy: >-
+  Execution, local retention, vendor sharing, Git commit, and public publication
+  are separate permissions. Unknown rights mean non-public.
+
+classes:
+  first_party_public:
+    may_execute: true
+    may_retain: true
+    may_commit: true
+    may_publish_payload: true
+
+  public_compatible_reference:
+    may_execute: true
+    may_retain: true
+    may_commit: false
+    may_publish_payload: false
+    notes:
+      - Exact reuse requires file-level license and notice review.
+      - References and independently reimplemented constructs may be documented.
+
+  challenge_private:
+    may_execute: true
+    may_retain: true
+    may_vendor_share: bounded_subset_only
+    may_commit_publicly: false
+    may_publish_payload: after_retirement_and_review
+
+  restricted_licensed:
+    may_execute: according_to_license
+    may_retain: locally
+    may_commit_publicly: false
+    may_publish_payload: false
+    may_publish_safe_metadata: according_to_applicable_rules
+
+  unknown:
+    may_execute: false
+    may_publish: false
+
+assets:
+  cpubench_source:
+    class: first_party_public
+    license: MIT OR Apache-2.0
+
+  bundled_family_specs:
+    class: first_party_public
+    license: MIT OR Apache-2.0
+
+  bundled_native_provider:
+    class: first_party_public
+    license: MIT OR Apache-2.0
+
+  cnc_tools_source:
+    class: public_compatible_reference
+    license: MIT
+    vendored: false
+
+  cnc_memory_latency_source:
+    class: public_compatible_reference
+    license: Apache-2.0
+    vendored: false
+
+  cnc_microbenchmarks_source:
+    class: public_compatible_reference
+    license: Apache-2.0
+    vendored: false
+
+  core_to_core_latency_source:
+    class: public_compatible_reference
+    license: MIT
+    vendored: false
+
+  uarch_bench_source:
+    class: public_compatible_reference
+    license: MIT
+    vendored: false
+
+  nanobench_source:
+    class: public_compatible_reference
+    license: AGPL-3.0-only
+    vendored: false
+
+  google_platform_benchmarks_source:
+    class: public_compatible_reference
+    license: Apache-2.0
+    vendored: false
+
+  google_benchmark_source:
+    class: public_compatible_reference
+    license: Apache-2.0
+    vendored: false
+
+  active_challenge_packs:
+    class: challenge_private
+    repository_location: external_local_vault
+
+  spec_sources_inputs_tools:
+    class: restricted_licensed
+    repository_location: prohibited
+
+  spec_safe_results_and_disclosures:
+    class: restricted_licensed
+    publication: applicable_product_rules
+
+  ian_2022_suite:
+    class: unknown
+    status: rights_intake_required
+
+  ian_generated_repository:
+    class: unknown
+    status: source_and_rights_intake_required

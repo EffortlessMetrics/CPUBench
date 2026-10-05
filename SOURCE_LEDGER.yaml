@@ -1,0 +1,152 @@
+schema_version: 1
+status_date: 2026-10-04
+purpose: >-
+  Preserve exact source identity, role, and disposition before donor code or
+  historical workloads enter a frozen CPUBench pack.
+
+sources:
+  - source_id: cpubench-alpha
+    kind: first_party
+    locator: repository-root
+    revision: 830f2dbcb80430ae8fbaaaa9c52ded558d7eb6a8
+    license: MIT OR Apache-2.0
+    role: implementation
+    disposition: canonical_alpha
+    notes:
+      - This revision is the preserved initial implementation commit; later commits may update provenance and release metadata.
+
+  - source_id: cnc-tools
+    kind: public_git
+    url: https://github.com/ChipsandCheese/CnC-Tools
+    revision: 00aca29b5e2fb42e0d8c19319401d9c58f215f09
+    license: MIT
+    role: historical_specimen_and_framework_reference
+    disposition: reference_only_pending_dossier
+    observed_assets:
+      - current core-coherency test
+      - platform, timing, and storage framework
+    notes:
+      - Do not inherit current timing or affinity behavior as measurement authority.
+
+  - source_id: cnc-memory-latency
+    kind: public_git
+    url: https://github.com/ChipsandCheese/MemoryLatencyTest
+    revision: a93bc1ba76dfe8cee76707e99f20ee13b5b485aa
+    license: Apache-2.0
+    role: historical_memory_family_specimen
+    disposition: reference_only_pending_dossier
+    observed_assets:
+      - randomized pointer-chase working-set sweep
+
+  - source_id: cnc-microbenchmarks
+    kind: public_git
+    url: https://github.com/ChipsandCheese/Microbenchmarks
+    revision: 8e6c6bf09de5415bbaf8fa941375e05e5718e249
+    license: Apache-2.0
+    role: historical_diagnostic_corpus
+    disposition: reference_only_pending_dossier
+    observed_assets:
+      - branch-history and BTB generators
+      - execution structure probes
+      - cache, memory, and coherence tests
+
+  - source_id: core-to-core-latency
+    kind: public_git
+    url: https://github.com/nviennot/core-to-core-latency
+    revision: 2592303a0ca5903f9bd03498ce3668cd6e2c560f
+    license: MIT
+    role: topology_and_atomic_handoff_donor
+    disposition: reference_only_pending_dossier
+    observed_assets:
+      - CAS, read/write, and message-passing forms
+      - barriers, atomics, repeated core-pair samples
+
+  - source_id: uarch-bench
+    kind: public_git
+    url: https://github.com/travisdowns/uarch-bench
+    revision: e4f54d5a8fa7e735d356ba83b5b1cdc8982a6650
+    license: MIT
+    role: x86_reference_instrument
+    disposition: external_cross_check
+
+  - source_id: nanobench
+    kind: public_git
+    url: https://github.com/andreas-abel/nanoBench
+    revision: 36c077fd30db11e8c83cedfcb58daa505d1d0b12
+    license: AGPL-3.0-only
+    role: x86_low_overhead_pmu_reference
+    disposition: external_cross_check
+    notes:
+      - Kernel mode is not an ordinary CPUBench execution path.
+
+  - source_id: google-platform-benchmarks
+    kind: public_git
+    url: https://github.com/google/platform_benchmarks
+    revision: 17639a58495efddf460bc8f9264a62fc5ef54a4d
+    license: Apache-2.0
+    role: construct_and_control_reference
+    disposition: reference_only
+    notes:
+      - Repository is archived; do not adopt its harness as the control plane.
+
+  - source_id: google-benchmark
+    kind: public_git
+    url: https://github.com/google/benchmark
+    revision: f1714c3fc43866f4f0dcdafb94beff9d1eef263c
+    license: Apache-2.0
+    role: optional_native_provider_harness_reference
+    disposition: external_adapter_candidate
+
+  - source_id: ian-generated-repository
+    kind: private_or_unresolved
+    locator: unresolved
+    revision: unresolved
+    license: unresolved
+    role: generated_candidate_specimen
+    disposition: intake_required
+    blocking:
+      - exact repository or archive
+      - exact revision
+      - agent session or build plan
+      - original source references
+
+  - source_id: ian-2022-suite
+    kind: private_restricted
+    locator: unresolved_google_drive_location
+    revision: unresolved
+    license: mixed_or_unresolved
+    role: historical_workload_and_editorial_judgment_corpus
+    disposition: intake_required
+    blocking:
+      - untouched archive
+      - file digest
+      - historical intent and selection notes
+
+  - source_id: ian-original-github-input-1
+    kind: public_or_private_git
+    locator: unresolved
+    revision: unresolved
+    license: unresolved
+    role: original_agent_input
+    disposition: intake_required
+
+  - source_id: ian-original-github-input-2
+    kind: public_or_private_git
+    locator: unresolved
+    revision: unresolved
+    license: unresolved
+    role: original_agent_input
+    disposition: intake_required
+
+  - source_id: licensed-spec-installation
+    kind: restricted_licensed
+    locator: unresolved_local_installation
+    product: unresolved
+    revision: unresolved
+    license: SPEC license agreement
+    role: private_application_plane
+    disposition: private_adapter_only
+    blocking:
+      - exact product and release/update
+      - installation digest
+      - applicable run and publication rules

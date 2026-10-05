@@ -1,0 +1,179 @@
+{
+  "$defs": {
+    "StudyPointResult": {
+      "additionalProperties": false,
+      "properties": {
+        "family_id": {
+          "title": "Family Id",
+          "type": "string"
+        },
+        "family_version": {
+          "title": "Family Version",
+          "type": "string"
+        },
+        "form_id": {
+          "title": "Form Id",
+          "type": "string"
+        },
+        "intervals_ns_per_unit": {
+          "additionalProperties": {
+            "items": {
+              "type": "number"
+            },
+            "type": "array"
+          },
+          "title": "Intervals Ns Per Unit",
+          "type": "object"
+        },
+        "parameters": {
+          "additionalProperties": true,
+          "title": "Parameters",
+          "type": "object"
+        },
+        "point_id": {
+          "title": "Point Id",
+          "type": "string"
+        },
+        "relative_speed_interval_to_baseline": {
+          "additionalProperties": {
+            "items": {
+              "type": "number"
+            },
+            "type": "array"
+          },
+          "title": "Relative Speed Interval To Baseline",
+          "type": "object"
+        },
+        "relative_speed_to_baseline": {
+          "additionalProperties": {
+            "type": "number"
+          },
+          "title": "Relative Speed To Baseline",
+          "type": "object"
+        },
+        "values_ns_per_unit": {
+          "additionalProperties": {
+            "type": "number"
+          },
+          "title": "Values Ns Per Unit",
+          "type": "object"
+        }
+      },
+      "required": [
+        "family_id",
+        "family_version",
+        "point_id",
+        "form_id",
+        "parameters",
+        "values_ns_per_unit",
+        "intervals_ns_per_unit",
+        "relative_speed_to_baseline",
+        "relative_speed_interval_to_baseline"
+      ],
+      "title": "StudyPointResult",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "analysis_policy": {
+      "title": "Analysis Policy",
+      "type": "string"
+    },
+    "artifact_kind": {
+      "const": "study_bundle",
+      "default": "study_bundle",
+      "title": "Artifact Kind",
+      "type": "string"
+    },
+    "baseline_campaign_id": {
+      "title": "Baseline Campaign Id",
+      "type": "string"
+    },
+    "campaign_labels": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Campaign Labels",
+      "type": "object"
+    },
+    "campaign_machine_ids": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Campaign Machine Ids",
+      "type": "object"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "missingness_policy": {
+      "title": "Missingness Policy",
+      "type": "string"
+    },
+    "omissions": {
+      "items": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "title": "Omissions",
+      "type": "array"
+    },
+    "parent_ids": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Parent Ids",
+      "type": "array"
+    },
+    "points": {
+      "items": {
+        "$ref": "#/$defs/StudyPointResult"
+      },
+      "title": "Points",
+      "type": "array"
+    },
+    "schema_version": {
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "semantic_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Semantic Id"
+    },
+    "study_id": {
+      "title": "Study Id",
+      "type": "string"
+    },
+    "validation_views": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Validation Views",
+      "type": "object"
+    }
+  },
+  "required": [
+    "study_id",
+    "baseline_campaign_id",
+    "campaign_labels",
+    "campaign_machine_ids",
+    "validation_views",
+    "analysis_policy",
+    "missingness_policy",
+    "points"
+  ],
+  "title": "StudyBundle",
+  "type": "object"
+}

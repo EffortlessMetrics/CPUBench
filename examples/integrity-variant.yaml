@@ -1,0 +1,35 @@
+schema_version: 1
+artifact_kind: variant_set_spec
+variant_set_id: public-vs-alias
+variant_set_version: 0.1.0
+title: Published identity versus neutral alias
+question: Does evaluation identity change performance while declared work remains matched?
+baseline_label: public
+comparison_metric: median_ns_per_unit
+threshold: 1.05
+members:
+  - label: public
+    role: baseline
+    family_id: integrity.identity_probe
+    point_id: public
+    form_id: matched_identity
+    transformation: published benchmark identity
+    preserves:
+      - executable bytes
+      - command arguments
+      - inputs
+      - useful work
+  - label: alias
+    role: challenge
+    family_id: integrity.identity_probe
+    point_id: alias
+    form_id: matched_identity
+    transformation: neutral executable identity
+    preserves:
+      - executable bytes
+      - command arguments
+      - inputs
+      - useful work
+claim_boundary:
+  - observed divergence does not by itself establish motive
+  - the finding requires independent proof that the declared preserved properties are actually matched

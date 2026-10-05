@@ -1,0 +1,33 @@
+name: Platform capability or adapter
+description: Add or qualify operating-system, topology, placement, timer, PMU, power, or thermal authority.
+title: "platform: "
+labels: [platform]
+body:
+  - type: input
+    id: platform
+    attributes:
+      label: Platform and version surface
+      placeholder: Windows 11 / Linux 6.x / macOS 26 / x86-64 / arm64
+    validations:
+      required: true
+  - type: textarea
+    id: capability
+    attributes:
+      label: Capability and authority
+      description: What can the platform expose or control, through which API, and at what authority level?
+    validations:
+      required: true
+  - type: textarea
+    id: limits
+    attributes:
+      label: Known limits and unsupported claims
+      description: State what the adapter must not pretend to prove.
+    validations:
+      required: true
+  - type: textarea
+    id: validation
+    attributes:
+      label: Qualification and negative tests
+      description: How will request/readback, failure, observer overhead, and version differences be tested?
+    validations:
+      required: true

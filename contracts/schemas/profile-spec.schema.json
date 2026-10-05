@@ -1,0 +1,96 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "artifact_kind": {
+      "const": "profile_spec",
+      "default": "profile_spec",
+      "title": "Artifact Kind",
+      "type": "string"
+    },
+    "attempts_per_point": {
+      "minimum": 1,
+      "title": "Attempts Per Point",
+      "type": "integer"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "include_tags": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Include Tags",
+      "type": "array"
+    },
+    "parent_ids": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Parent Ids",
+      "type": "array"
+    },
+    "profile_id": {
+      "title": "Profile Id",
+      "type": "string"
+    },
+    "randomized_interleaving": {
+      "default": true,
+      "title": "Randomized Interleaving",
+      "type": "boolean"
+    },
+    "samples_per_attempt": {
+      "minimum": 1,
+      "title": "Samples Per Attempt",
+      "type": "integer"
+    },
+    "schema_version": {
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "semantic_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Semantic Id"
+    },
+    "timeout_seconds": {
+      "exclusiveMinimum": 0,
+      "title": "Timeout Seconds",
+      "type": "number"
+    },
+    "title": {
+      "title": "Title",
+      "type": "string"
+    },
+    "unit_scale": {
+      "exclusiveMinimum": 0,
+      "title": "Unit Scale",
+      "type": "number"
+    },
+    "warmup_samples": {
+      "minimum": 0,
+      "title": "Warmup Samples",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "profile_id",
+    "title",
+    "attempts_per_point",
+    "samples_per_attempt",
+    "warmup_samples",
+    "unit_scale",
+    "timeout_seconds"
+  ],
+  "title": "ProfileSpec",
+  "type": "object"
+}

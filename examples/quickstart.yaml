@@ -1,0 +1,17 @@
+schema_version: 1
+artifact_kind: campaign_spec
+campaign_id: quickstart
+title: CPUBench quickstart campaign
+description: >-
+  A development campaign that qualifies the evidence path and runs the first
+  controlled memory-access families. Results are not a universal CPU score.
+profile: profiles/smoke.yaml
+packs:
+  - pack: packs/controls/pack.yaml
+  - pack: packs/memory-access/pack.yaml
+operating_mode: characterization
+implementation_policy: native
+placement: scheduler_open
+output_root: .cpubench/runs
+schedule_seed: 20261004
+public_claims_enabled: false

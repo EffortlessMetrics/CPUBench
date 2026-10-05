@@ -1,0 +1,324 @@
+{
+  "$defs": {
+    "MutantSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "description": {
+          "title": "Description",
+          "type": "string"
+        },
+        "expected_failures": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Expected Failures",
+          "type": "array"
+        },
+        "mutant_id": {
+          "title": "Mutant Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "mutant_id",
+        "description",
+        "expected_failures"
+      ],
+      "title": "MutantSpec",
+      "type": "object"
+    },
+    "ObligationSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "description": {
+          "title": "Description",
+          "type": "string"
+        },
+        "severity": {
+          "default": "blocking",
+          "enum": [
+            "blocking",
+            "required_for_view",
+            "diagnostic"
+          ],
+          "title": "Severity",
+          "type": "string"
+        },
+        "views": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Views",
+          "type": "array"
+        }
+      },
+      "required": [
+        "description"
+      ],
+      "title": "ObligationSpec",
+      "type": "object"
+    },
+    "OperatingMode": {
+      "enum": [
+        "product",
+        "characterization",
+        "mechanism"
+      ],
+      "title": "OperatingMode",
+      "type": "string"
+    },
+    "PointSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "parameters": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "boolean"
+              }
+            ]
+          },
+          "title": "Parameters",
+          "type": "object"
+        },
+        "point_id": {
+          "title": "Point Id",
+          "type": "string"
+        },
+        "profiles": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Profiles",
+          "type": "array"
+        },
+        "tags": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Tags",
+          "type": "array"
+        }
+      },
+      "required": [
+        "point_id",
+        "parameters"
+      ],
+      "title": "PointSpec",
+      "type": "object"
+    },
+    "WorkContract": {
+      "additionalProperties": false,
+      "properties": {
+        "input_population": {
+          "title": "Input Population",
+          "type": "string"
+        },
+        "quality_or_tolerance": {
+          "title": "Quality Or Tolerance",
+          "type": "string"
+        },
+        "required_output": {
+          "title": "Required Output",
+          "type": "string"
+        },
+        "useful_unit": {
+          "title": "Useful Unit",
+          "type": "string"
+        }
+      },
+      "required": [
+        "useful_unit",
+        "input_population",
+        "required_output",
+        "quality_or_tolerance"
+      ],
+      "title": "WorkContract",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "artifact_kind": {
+      "const": "family_spec",
+      "default": "family_spec",
+      "title": "Artifact Kind",
+      "type": "string"
+    },
+    "claim_boundary": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Claim Boundary",
+      "type": "array"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "demand_geometry": {
+      "additionalProperties": true,
+      "title": "Demand Geometry",
+      "type": "object"
+    },
+    "diagnostic_metrics": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Diagnostic Metrics",
+      "type": "array"
+    },
+    "evaluated_object": {
+      "title": "Evaluated Object",
+      "type": "string"
+    },
+    "family_id": {
+      "title": "Family Id",
+      "type": "string"
+    },
+    "family_version": {
+      "title": "Family Version",
+      "type": "string"
+    },
+    "forms": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Forms",
+      "type": "array"
+    },
+    "intervention_axes": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Intervention Axes",
+      "type": "array"
+    },
+    "invariants": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Invariants",
+      "type": "array"
+    },
+    "mutants": {
+      "items": {
+        "$ref": "#/$defs/MutantSpec"
+      },
+      "title": "Mutants",
+      "type": "array"
+    },
+    "obligations": {
+      "additionalProperties": {
+        "$ref": "#/$defs/ObligationSpec"
+      },
+      "title": "Obligations",
+      "type": "object"
+    },
+    "parent_ids": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Parent Ids",
+      "type": "array"
+    },
+    "points": {
+      "items": {
+        "$ref": "#/$defs/PointSpec"
+      },
+      "title": "Points",
+      "type": "array"
+    },
+    "primary_metrics": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Primary Metrics",
+      "type": "array"
+    },
+    "provider_id": {
+      "title": "Provider Id",
+      "type": "string"
+    },
+    "question": {
+      "title": "Question",
+      "type": "string"
+    },
+    "schema_version": {
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "semantic_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Semantic Id"
+    },
+    "supported_modes": {
+      "items": {
+        "$ref": "#/$defs/OperatingMode"
+      },
+      "title": "Supported Modes",
+      "type": "array"
+    },
+    "surface": {
+      "title": "Surface",
+      "type": "string"
+    },
+    "timing_authority": {
+      "enum": [
+        "provider_elapsed",
+        "provider_cycles",
+        "runner_elapsed"
+      ],
+      "title": "Timing Authority",
+      "type": "string"
+    },
+    "title": {
+      "title": "Title",
+      "type": "string"
+    },
+    "work_contract": {
+      "$ref": "#/$defs/WorkContract"
+    }
+  },
+  "required": [
+    "family_id",
+    "family_version",
+    "title",
+    "surface",
+    "question",
+    "evaluated_object",
+    "provider_id",
+    "work_contract",
+    "demand_geometry",
+    "intervention_axes",
+    "invariants",
+    "forms",
+    "points",
+    "timing_authority",
+    "supported_modes",
+    "primary_metrics",
+    "obligations",
+    "claim_boundary"
+  ],
+  "title": "FamilySpec",
+  "type": "object"
+}

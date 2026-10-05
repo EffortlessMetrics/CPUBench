@@ -1,0 +1,121 @@
+{
+  "$defs": {
+    "StudyCampaignRef": {
+      "additionalProperties": false,
+      "properties": {
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path"
+      ],
+      "title": "StudyCampaignRef",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "analysis_policy": {
+      "title": "Analysis Policy",
+      "type": "string"
+    },
+    "artifact_kind": {
+      "const": "study_spec",
+      "default": "study_spec",
+      "title": "Artifact Kind",
+      "type": "string"
+    },
+    "baseline_campaign_id": {
+      "title": "Baseline Campaign Id",
+      "type": "string"
+    },
+    "campaigns": {
+      "items": {
+        "$ref": "#/$defs/StudyCampaignRef"
+      },
+      "title": "Campaigns",
+      "type": "array"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "description": {
+      "title": "Description",
+      "type": "string"
+    },
+    "missingness_policy": {
+      "const": "omit_unmatched",
+      "default": "omit_unmatched",
+      "title": "Missingness Policy",
+      "type": "string"
+    },
+    "output_root": {
+      "default": ".cpubench/studies",
+      "title": "Output Root",
+      "type": "string"
+    },
+    "parent_ids": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Parent Ids",
+      "type": "array"
+    },
+    "schema_version": {
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "semantic_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Semantic Id"
+    },
+    "study_id": {
+      "title": "Study Id",
+      "type": "string"
+    },
+    "title": {
+      "title": "Title",
+      "type": "string"
+    },
+    "validity_view": {
+      "title": "Validity View",
+      "type": "string"
+    }
+  },
+  "required": [
+    "study_id",
+    "title",
+    "description",
+    "campaigns",
+    "baseline_campaign_id",
+    "validity_view",
+    "analysis_policy"
+  ],
+  "title": "StudySpec",
+  "type": "object"
+}

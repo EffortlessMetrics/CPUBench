@@ -1,0 +1,91 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "artifact_kind": {
+      "const": "run_environment_receipt",
+      "default": "run_environment_receipt",
+      "title": "Artifact Kind",
+      "type": "string"
+    },
+    "campaign_id": {
+      "title": "Campaign Id",
+      "type": "string"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "known_unknowns": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Known Unknowns",
+      "type": "array"
+    },
+    "load": {
+      "additionalProperties": true,
+      "title": "Load",
+      "type": "object"
+    },
+    "machine_receipt_id": {
+      "title": "Machine Receipt Id",
+      "type": "string"
+    },
+    "memory": {
+      "additionalProperties": true,
+      "title": "Memory",
+      "type": "object"
+    },
+    "parent_ids": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Parent Ids",
+      "type": "array"
+    },
+    "power": {
+      "additionalProperties": true,
+      "title": "Power",
+      "type": "object"
+    },
+    "process": {
+      "additionalProperties": true,
+      "title": "Process",
+      "type": "object"
+    },
+    "schema_version": {
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "semantic_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Semantic Id"
+    },
+    "thermal": {
+      "additionalProperties": true,
+      "title": "Thermal",
+      "type": "object"
+    }
+  },
+  "required": [
+    "campaign_id",
+    "machine_receipt_id",
+    "process",
+    "load",
+    "memory",
+    "power",
+    "thermal"
+  ],
+  "title": "RunEnvironmentReceipt",
+  "type": "object"
+}

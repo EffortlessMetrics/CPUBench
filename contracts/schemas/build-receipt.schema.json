@@ -1,0 +1,109 @@
+{
+  "$defs": {
+    "ImplementationPolicy": {
+      "enum": [
+        "exact",
+        "portable",
+        "native",
+        "tuned",
+        "product"
+      ],
+      "title": "ImplementationPolicy",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "artifact_kind": {
+      "const": "build_receipt",
+      "default": "build_receipt",
+      "title": "Artifact Kind",
+      "type": "string"
+    },
+    "binary_digest": {
+      "title": "Binary Digest",
+      "type": "string"
+    },
+    "binary_path": {
+      "title": "Binary Path",
+      "type": "string"
+    },
+    "build_policy": {
+      "$ref": "#/$defs/ImplementationPolicy"
+    },
+    "commands": {
+      "items": {
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
+      "title": "Commands",
+      "type": "array"
+    },
+    "compiler": {
+      "title": "Compiler",
+      "type": "string"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "implementation_id": {
+      "title": "Implementation Id",
+      "type": "string"
+    },
+    "logs": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Logs",
+      "type": "array"
+    },
+    "parent_ids": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Parent Ids",
+      "type": "array"
+    },
+    "provider_id": {
+      "title": "Provider Id",
+      "type": "string"
+    },
+    "schema_version": {
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "semantic_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Semantic Id"
+    },
+    "source_digest": {
+      "title": "Source Digest",
+      "type": "string"
+    }
+  },
+  "required": [
+    "provider_id",
+    "implementation_id",
+    "source_digest",
+    "compiler",
+    "commands",
+    "binary_path",
+    "binary_digest",
+    "build_policy"
+  ],
+  "title": "BuildReceipt",
+  "type": "object"
+}

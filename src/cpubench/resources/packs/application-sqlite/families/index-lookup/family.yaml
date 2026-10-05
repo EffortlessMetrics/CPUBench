@@ -1,0 +1,85 @@
+schema_version: 1
+artifact_kind: family_spec
+family_id: application.sqlite_index_lookup
+family_version: 0.1.0
+title: Warm SQLite indexed point lookup
+surface: application_anchor
+question: How quickly does the configured Python and SQLite stack serve deterministic indexed point lookups over a warm in-memory database?
+evaluated_object: python_runtime_plus_stdlib_sqlite_plus_operating_system_plus_hardware
+provider_id: python-sqlite
+work_contract:
+  useful_unit: one successful primary-key lookup with payload consumption
+  input_population: deterministic uniformly distributed keys over a frozen row population
+  required_output: exact lookup count and traversal-derived checksum
+  quality_or_tolerance: exact integer and byte-level work validation
+
+demand_geometry:
+  access: irregular_indexed_point_lookup
+  locality: input_population_dependent
+  branch_and_runtime: sqlite_btree_plus_python_wrapper
+  storage: in_memory_database
+intervention_axes:
+  - rows
+invariants:
+  - query shape
+  - payload width
+  - completed lookups within a profile
+  - key distribution
+  - warm in-memory state
+  - output validation
+forms:
+  - warm_indexed_lookup
+points:
+  - point_id: rows-10k
+    parameters: {rows: 10000, payload_bytes: 32, completed_units: 5000, seed: 401}
+    profiles: [smoke, qualify, review, characterize]
+    tags: [application, irregular-memory]
+  - point_id: rows-100k
+    parameters: {rows: 100000, payload_bytes: 32, completed_units: 10000, seed: 402}
+    profiles: [qualify, review, characterize]
+    tags: [application, irregular-memory]
+  - point_id: rows-500k
+    parameters: {rows: 500000, payload_bytes: 32, completed_units: 20000, seed: 403}
+    profiles: [characterize]
+    tags: [application, irregular-memory]
+timing_authority: provider_elapsed
+supported_modes: [product, characterization]
+primary_metrics:
+  - ns_per_lookup
+  - lookups_per_second
+diagnostic_metrics:
+  - sqlite_version
+  - python_version
+  - rows
+  - payload_bytes
+obligations:
+  work.completed_units:
+    severity: blocking
+    description: Every sample must complete the exact requested number of successful lookups.
+  work.output_checksum:
+    severity: blocking
+    description: Lookup payloads and keys must contribute to a retained checksum.
+  work.database_validated:
+    severity: blocking
+    description: The row and payload population must be validated before timing.
+  timing.setup_excluded:
+    severity: blocking
+    description: Database creation, population, validation, and key generation must remain outside the timed region.
+  instrument.timer_qualified:
+    severity: blocking
+    description: The provider must use a qualified monotonic elapsed timer.
+mutants:
+  - mutant_id: sqlite.missing_payload_consumption
+    description: The query executes but the returned payload does not contribute to the checksum.
+    expected_failures: [work.output_checksum]
+  - mutant_id: sqlite.setup_timed
+    description: Database creation or key generation enters the timed region.
+    expected_failures: [timing.setup_excluded]
+  - mutant_id: sqlite.population_unvalidated
+    description: The provider accepts a partial or malformed database population.
+    expected_failures: [work.database_validated]
+claim_boundary:
+  - measures_the_configured_python_sqlite_stack_not_an_isolated_cpu_core
+  - does_not_measure_storage_io
+  - does_not_establish_general_database_performance
+  - does_not_prove_that_memory_level_parallelism_caused_cross_system_differences

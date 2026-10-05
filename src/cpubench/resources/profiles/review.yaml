@@ -1,0 +1,10 @@
+schema_version: 1
+artifact_kind: profile_spec
+profile_id: review
+title: Editorial review campaign
+attempts_per_point: 5
+samples_per_attempt: 5
+warmup_samples: 2
+unit_scale: 1.0
+timeout_seconds: 300
+randomized_interleaving: true

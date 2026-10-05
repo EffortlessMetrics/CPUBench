@@ -1,0 +1,78 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "artifact_kind": {
+      "const": "finding_bundle",
+      "default": "finding_bundle",
+      "title": "Artifact Kind",
+      "type": "string"
+    },
+    "claim_boundary": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Claim Boundary",
+      "type": "array"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "effect": {
+      "additionalProperties": true,
+      "title": "Effect",
+      "type": "object"
+    },
+    "finding_type": {
+      "title": "Finding Type",
+      "type": "string"
+    },
+    "intent_status": {
+      "default": "not_assessed",
+      "enum": [
+        "unknown",
+        "not_assessed",
+        "supported",
+        "not_supported"
+      ],
+      "title": "Intent Status",
+      "type": "string"
+    },
+    "observation": {
+      "title": "Observation",
+      "type": "string"
+    },
+    "parent_ids": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Parent Ids",
+      "type": "array"
+    },
+    "schema_version": {
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "semantic_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Semantic Id"
+    }
+  },
+  "required": [
+    "finding_type",
+    "observation",
+    "effect"
+  ],
+  "title": "FindingBundle",
+  "type": "object"
+}

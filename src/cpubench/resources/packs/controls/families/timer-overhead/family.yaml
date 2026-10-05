@@ -1,0 +1,57 @@
+schema_version: 1
+artifact_kind: family_spec
+family_id: controls.timer_overhead
+family_version: 0.1.0
+title: Monotonic timer read overhead
+surface: instrument_qualification
+question: How much elapsed time does the configured monotonic timer pair impose per observed unit?
+evaluated_object: runtime_timer
+provider_id: python-control
+work_contract:
+  useful_unit: one paired monotonic timer observation
+  input_population: fixed iteration counts
+  required_output: non-negative accumulated timer delta
+  quality_or_tolerance: exact structural validation; timing remains descriptive
+
+demand_geometry:
+  timer_reads_per_unit: 2
+intervention_axes:
+  - completed_units
+invariants:
+  - timer source
+  - provider implementation
+  - process execution model
+forms:
+  - baseline
+points:
+  - point_id: timer-1k
+    parameters:
+      completed_units: 1000
+    profiles: [smoke, qualify, review, characterize]
+  - point_id: timer-10k
+    parameters:
+      completed_units: 10000
+    profiles: [qualify, characterize]
+timing_authority: provider_elapsed
+supported_modes: [product, characterization, mechanism]
+primary_metrics:
+  - ns_per_unit
+diagnostic_metrics:
+  - elapsed_ns
+obligations:
+  work.completed_units:
+    severity: blocking
+    description: The provider must report the exact completed unit count.
+  work.output_checksum:
+    severity: blocking
+    description: The provider must retain an output derived from observed timer deltas.
+  instrument.timer_qualified:
+    severity: blocking
+    description: The timer must be monotonic and expose a declared authority.
+mutants:
+  - mutant_id: controls.timer_zero_units
+    description: Reports no completed timer observations.
+    expected_failures: [work.completed_units]
+claim_boundary:
+  - does_not_measure_cpu_instruction_latency
+  - does_not_establish_cross_platform_timer_equivalence

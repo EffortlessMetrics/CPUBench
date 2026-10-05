@@ -1,0 +1,56 @@
+name: Bug or evidence defect
+description: Report incorrect behavior in the control plane, provider protocol, evidence, validation, analysis, or report.
+title: "bug: "
+labels: [bug]
+body:
+  - type: dropdown
+    id: layer
+    attributes:
+      label: Affected layer
+      options:
+        - authoring/specification
+        - platform doctor
+        - build/provider
+        - planning/execution
+        - evidence/finalization
+        - validation
+        - analysis/statistics
+        - reporting/study
+        - integrity/challenge
+    validations:
+      required: true
+  - type: textarea
+    id: observed
+    attributes:
+      label: Observed behavior
+      description: State what happened. Keep observation separate from the suspected cause.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected contract
+      description: Identify the documented or intended invariant.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence and reproduction
+      description: Include commands, reason codes, artifact IDs, and a minimal rights-safe bundle where possible.
+    validations:
+      required: true
+  - type: textarea
+    id: exposure
+    attributes:
+      label: Claim exposure
+      description: Which result, validity view, or public claim could be affected?
+    validations:
+      required: true
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: Disclosure check
+      options:
+        - label: I removed credentials, private paths, restricted benchmark payloads, serials, and embargoed data.
+          required: true

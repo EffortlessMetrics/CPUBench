@@ -1,0 +1,92 @@
+schema_version: 1
+artifact_kind: family_spec
+family_id: memory.memory_level_parallelism
+family_version: 0.1.0
+title: Independent miss overlap
+surface: controlled_principle
+question: How does useful load throughput change as independent randomized dependency chains expose more outstanding misses?
+evaluated_object: fixed_source_native_binary
+provider_id: native-c11
+work_contract:
+  useful_unit: one validated indexed load
+  input_population: deterministic disjoint randomized cycles over one total working-set extent
+  required_output: combined final-index checksum and exact completed load count
+  quality_or_tolerance: exact integer work validation
+
+demand_geometry:
+  dependency: serial_within_chain_independent_between_chains
+  locality: randomized
+  arithmetic_intensity: minimal
+  access_width_bytes: 4
+intervention_axes:
+  - chains
+invariants:
+  - total working_set_bytes
+  - total completed loads within a profile
+  - disjoint cycles
+  - index representation
+  - output validation
+  - timed region
+forms:
+  - independent_random_chains
+points:
+  - point_id: chains-1
+    parameters: {working_set_bytes: 67108864, chains: 1, completed_units: 4000000, seed: 201}
+    profiles: [smoke, qualify, review, characterize]
+    tags: [memory]
+  - point_id: chains-2
+    parameters: {working_set_bytes: 67108864, chains: 2, completed_units: 4000000, seed: 201}
+    profiles: [qualify, review, characterize]
+    tags: [memory]
+  - point_id: chains-4
+    parameters: {working_set_bytes: 67108864, chains: 4, completed_units: 4000000, seed: 201}
+    profiles: [smoke, qualify, review, characterize]
+    tags: [memory]
+  - point_id: chains-8
+    parameters: {working_set_bytes: 67108864, chains: 8, completed_units: 4000000, seed: 201}
+    profiles: [qualify, review, characterize]
+    tags: [memory]
+  - point_id: chains-16
+    parameters: {working_set_bytes: 67108864, chains: 16, completed_units: 4000000, seed: 201}
+    profiles: [review, characterize]
+    tags: [memory]
+timing_authority: provider_elapsed
+supported_modes: [characterization, mechanism]
+primary_metrics:
+  - loads_per_second
+  - ns_per_load
+diagnostic_metrics:
+  - elapsed_ns
+  - checksum
+  - chains
+obligations:
+  work.completed_units:
+    severity: blocking
+    description: Total completed loads must remain comparable across chain-count forms.
+  work.output_checksum:
+    severity: blocking
+    description: Every chain must contribute to the retained checksum.
+  work.disjoint_chains:
+    severity: blocking
+    description: Chains must be disjoint and internally dependent.
+  timing.setup_excluded:
+    severity: blocking
+    description: Cycle generation and validation must be outside the timed region.
+  instrument.timer_qualified:
+    severity: blocking
+    description: A monotonic interval timer must be used.
+  placement.hard_affinity:
+    severity: required_for_view
+    description: Pinned characterization views require verified affinity.
+    views: [pinned_characterization]
+mutants:
+  - mutant_id: mlp.shared_dependency
+    description: Two nominal chains share one dependency path.
+    expected_failures: [work.disjoint_chains]
+  - mutant_id: mlp.units_scale_with_chains
+    description: Higher chain counts receive more useful work and are not normalized.
+    expected_failures: [work.completed_units]
+claim_boundary:
+  - does_not_measure_single_miss_latency
+  - does_not_identify_the_internal_queue_that_limits_overlap
+  - does_not_establish_graph_or_database_performance

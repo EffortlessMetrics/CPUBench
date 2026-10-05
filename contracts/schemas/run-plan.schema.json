@@ -1,0 +1,230 @@
+{
+  "$defs": {
+    "ImplementationPolicy": {
+      "enum": [
+        "exact",
+        "portable",
+        "native",
+        "tuned",
+        "product"
+      ],
+      "title": "ImplementationPolicy",
+      "type": "string"
+    },
+    "OperatingMode": {
+      "enum": [
+        "product",
+        "characterization",
+        "mechanism"
+      ],
+      "title": "OperatingMode",
+      "type": "string"
+    },
+    "RunPlanItem": {
+      "additionalProperties": false,
+      "properties": {
+        "attempt_id": {
+          "title": "Attempt Id",
+          "type": "string"
+        },
+        "attempt_index": {
+          "title": "Attempt Index",
+          "type": "integer"
+        },
+        "family_id": {
+          "title": "Family Id",
+          "type": "string"
+        },
+        "family_version": {
+          "title": "Family Version",
+          "type": "string"
+        },
+        "form_id": {
+          "title": "Form Id",
+          "type": "string"
+        },
+        "implementation_policy": {
+          "$ref": "#/$defs/ImplementationPolicy"
+        },
+        "instrument_release_id": {
+          "title": "Instrument Release Id",
+          "type": "string"
+        },
+        "operating_mode": {
+          "$ref": "#/$defs/OperatingMode"
+        },
+        "pack_id": {
+          "title": "Pack Id",
+          "type": "string"
+        },
+        "pack_release_id": {
+          "title": "Pack Release Id",
+          "type": "string"
+        },
+        "parameters": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "boolean"
+              }
+            ]
+          },
+          "title": "Parameters",
+          "type": "object"
+        },
+        "placement": {
+          "title": "Placement",
+          "type": "string"
+        },
+        "point_id": {
+          "title": "Point Id",
+          "type": "string"
+        },
+        "provider_id": {
+          "title": "Provider Id",
+          "type": "string"
+        },
+        "samples_per_attempt": {
+          "title": "Samples Per Attempt",
+          "type": "integer"
+        },
+        "sequence_index": {
+          "title": "Sequence Index",
+          "type": "integer"
+        },
+        "timeout_seconds": {
+          "title": "Timeout Seconds",
+          "type": "number"
+        },
+        "warmup_samples": {
+          "title": "Warmup Samples",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "attempt_id",
+        "sequence_index",
+        "instrument_release_id",
+        "pack_release_id",
+        "pack_id",
+        "family_id",
+        "family_version",
+        "point_id",
+        "form_id",
+        "provider_id",
+        "parameters",
+        "attempt_index",
+        "samples_per_attempt",
+        "warmup_samples",
+        "timeout_seconds",
+        "operating_mode",
+        "implementation_policy",
+        "placement"
+      ],
+      "title": "RunPlanItem",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "artifact_kind": {
+      "const": "run_plan",
+      "default": "run_plan",
+      "title": "Artifact Kind",
+      "type": "string"
+    },
+    "campaign_id": {
+      "title": "Campaign Id",
+      "type": "string"
+    },
+    "campaign_spec_id": {
+      "title": "Campaign Spec Id",
+      "type": "string"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "instrument_release_id": {
+      "title": "Instrument Release Id",
+      "type": "string"
+    },
+    "items": {
+      "items": {
+        "$ref": "#/$defs/RunPlanItem"
+      },
+      "title": "Items",
+      "type": "array"
+    },
+    "machine_receipt_id": {
+      "title": "Machine Receipt Id",
+      "type": "string"
+    },
+    "pack_release_ids": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Pack Release Ids",
+      "type": "object"
+    },
+    "parent_ids": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Parent Ids",
+      "type": "array"
+    },
+    "profile_id": {
+      "title": "Profile Id",
+      "type": "string"
+    },
+    "run_environment_receipt_id": {
+      "title": "Run Environment Receipt Id",
+      "type": "string"
+    },
+    "schedule_seed": {
+      "title": "Schedule Seed",
+      "type": "integer"
+    },
+    "schema_version": {
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "semantic_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Semantic Id"
+    }
+  },
+  "required": [
+    "campaign_id",
+    "campaign_spec_id",
+    "instrument_release_id",
+    "pack_release_ids",
+    "profile_id",
+    "machine_receipt_id",
+    "run_environment_receipt_id",
+    "schedule_seed",
+    "items"
+  ],
+  "title": "RunPlan",
+  "type": "object"
+}

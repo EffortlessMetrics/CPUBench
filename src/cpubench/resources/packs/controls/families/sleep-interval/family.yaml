@@ -1,0 +1,56 @@
+schema_version: 1
+artifact_kind: family_spec
+family_id: controls.sleep_interval
+family_version: 0.1.0
+title: Known-duration interval sanity control
+surface: instrument_qualification
+question: Does elapsed timing preserve the requested order of millisecond-scale intervals?
+evaluated_object: runtime_and_operating_system_timer
+provider_id: python-control
+work_contract:
+  useful_unit: one requested sleep interval
+  input_population: fixed requested durations
+  required_output: the requested duration identity
+  quality_or_tolerance: observed elapsed time must be at least the requested interval on ordinary systems
+
+demand_geometry:
+  operating_system_sleep: true
+intervention_axes:
+  - sleep_ns
+invariants:
+  - provider implementation
+  - timer source
+forms:
+  - baseline
+points:
+  - point_id: sleep-2ms
+    parameters:
+      sleep_ns: 2000000
+    profiles: [smoke, qualify, review, characterize]
+  - point_id: sleep-10ms
+    parameters:
+      sleep_ns: 10000000
+    profiles: [qualify, characterize]
+timing_authority: provider_elapsed
+supported_modes: [product, characterization, mechanism]
+primary_metrics:
+  - elapsed_ns
+diagnostic_metrics:
+  - requested_sleep_ns
+obligations:
+  work.completed_units:
+    severity: blocking
+    description: Exactly one requested interval must complete per sample.
+  work.output_checksum:
+    severity: blocking
+    description: The requested duration must travel with the result.
+  instrument.timer_qualified:
+    severity: blocking
+    description: The interval timer must be monotonic.
+mutants:
+  - mutant_id: controls.sleep_missing
+    description: Returns immediately without sleeping.
+    expected_failures: [work.output_checksum]
+claim_boundary:
+  - measures_operating_system_sleep_and_scheduler_behavior_not_only_timer_accuracy
+  - does_not_measure_cpu_performance
