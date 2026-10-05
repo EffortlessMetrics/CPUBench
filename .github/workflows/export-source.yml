@@ -1,0 +1,25 @@
+name: Export placement branch source
+
+on:
+  push:
+    branches: [feat/placement-residency]
+    paths:
+      - ".github/workflows/export-source.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Archive source
+        shell: bash
+        run: git archive --format=tar.gz --output=cpubench-placement-source.tar.gz HEAD
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cpubench-placement-source
+          path: cpubench-placement-source.tar.gz
+          if-no-files-found: error
