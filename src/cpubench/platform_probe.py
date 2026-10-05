@@ -171,12 +171,12 @@ def _pmu_capability() -> CapabilityEvidence:
 def _sensor_capability(kind: str) -> CapabilityEvidence:
     try:
         if kind == "thermal":
-            data = psutil.sensors_temperatures(fahrenheit=False)
+            available = bool(psutil.sensors_temperatures(fahrenheit=False))
         else:
-            data = psutil.sensors_battery()
+            available = psutil.sensors_battery() is not None
     except (AttributeError, OSError, NotImplementedError) as exc:
         return CapabilityEvidence(state=CapabilityState.UNSUPPORTED, authority="psutil", detail=str(exc))
-    if not data:
+    if not available:
         return CapabilityEvidence(state=CapabilityState.UNSUPPORTED, authority="psutil", detail=f"no {kind} data")
     return CapabilityEvidence(
         state=CapabilityState.AVAILABLE_UNQUALIFIED,
@@ -192,20 +192,24 @@ def _serializable(value: Any) -> Any:
 def _sensor_snapshot(kind: str) -> dict[str, Any]:
     try:
         if kind == "thermal":
-            data = psutil.sensors_temperatures(fahrenheit=False)
-        else:
-            data = psutil.sensors_battery()
+            thermal_data = psutil.sensors_temperatures(fahrenheit=False)
+            if not thermal_data:
+                return {"available": False}
+            return {"available": True, "data": _serializable(thermal_data)}
+        battery_data = psutil.sensors_battery()
     except (AttributeError, OSError, NotImplementedError) as exc:
         return {"available": False, "error": str(exc)}
-    if not data:
+    if battery_data is None:
         return {"available": False}
-    return {"available": True, "data": _serializable(data)}
+    return {"available": True, "data": _serializable(battery_data)}
 
 
 def collect_machine_receipt() -> MachineReceipt:
     system_name = platform.system()
     cpuinfo = _linux_cpuinfo() if system_name == "Linux" else {}
-    topology = _linux_topology() if system_name == "Linux" else {"logical_cpus": psutil.cpu_count(logical=True)}
+    topology: dict[str, Any] = (
+        _linux_topology() if system_name == "Linux" else {"logical_cpus": psutil.cpu_count(logical=True)}
+    )
     if system_name == "Linux":
         topology["caches"] = _cache_summary()
 
