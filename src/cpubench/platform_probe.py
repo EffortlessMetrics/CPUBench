@@ -7,7 +7,7 @@ import platform
 import sys
 import time
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable, cast
 
 import psutil
 
@@ -168,10 +168,17 @@ def _pmu_capability() -> CapabilityEvidence:
     )
 
 
+def _read_temperatures() -> Any:
+    reader = cast(Callable[..., Any] | None, getattr(psutil, "sensors_temperatures", None))
+    if reader is None:
+        return None
+    return reader(fahrenheit=False)
+
+
 def _sensor_capability(kind: str) -> CapabilityEvidence:
     try:
         if kind == "thermal":
-            available = bool(psutil.sensors_temperatures(fahrenheit=False))
+            available = bool(_read_temperatures())
         else:
             available = psutil.sensors_battery() is not None
     except (AttributeError, OSError, NotImplementedError) as exc:
@@ -192,7 +199,7 @@ def _serializable(value: Any) -> Any:
 def _sensor_snapshot(kind: str) -> dict[str, Any]:
     try:
         if kind == "thermal":
-            thermal_data = psutil.sensors_temperatures(fahrenheit=False)
+            thermal_data = _read_temperatures()
             if not thermal_data:
                 return {"available": False}
             return {"available": True, "data": _serializable(thermal_data)}
