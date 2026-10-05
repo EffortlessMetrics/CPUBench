@@ -26,6 +26,13 @@ jobs:
             .bootstrap/placement.patch.xz.b64 \
             .bootstrap/placement.patch.xz.b64.part-01 \
             .bootstrap/placement.patch.xz.b64.part-02 \
+            .bootstrap/placement.patch.xz.b64.part-03 \
+            .bootstrap/placement.patch.xz.b64.part-04 \
+            .bootstrap/placement.patch.xz.b64.part-05 \
+            .bootstrap/placement.patch.xz.b64.part-06 \
+            .bootstrap/placement.patch.xz.b64.part-07 \
+            .bootstrap/placement.patch.xz.b64.part-07b \
+            .bootstrap/placement.patch.xz.b64.part-08 \
             | base64 -d | xz -d > /tmp/placement.patch
           echo "a48c3ff413e340e792fed45583f745b2fa18e29a4c2729600e470bdfc6b0e406  /tmp/placement.patch" | sha256sum -c -
           git apply --check /tmp/placement.patch
