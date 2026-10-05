@@ -1,0 +1,53 @@
+name: Bootstrap source
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".bootstrap/**"
+      - ".github/workflows/bootstrap.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  bootstrap:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Reassemble and verify archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat .bootstrap/part-* > /tmp/CPUBench-source.tar.xz
+          echo "ae86dff63c2d985d27ebae43b014ca98972da11d9ffd63e63538a2af45cfce08  /tmp/CPUBench-source.tar.xz" | sha256sum -c -
+          rm -rf /tmp/cpubench-source
+          mkdir -p /tmp/cpubench-source
+          tar -xJf /tmp/CPUBench-source.tar.xz -C /tmp/cpubench-source
+          test -f /tmp/cpubench-source/pyproject.toml
+
+      - name: Materialize repository
+        shell: bash
+        run: |
+          set -euo pipefail
+          rsync -a --delete \
+            --exclude '.git/' \
+            --exclude '.bootstrap/' \
+            --exclude '.github/workflows/bootstrap.yml' \
+            /tmp/cpubench-source/ ./
+          rm -rf .bootstrap
+          rm -f .github/workflows/bootstrap.yml
+
+      - name: Commit exact source tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "Steven Zimmerman, CPA"
+          git config user.email "15812269+EffortlessSteven@users.noreply.github.com"
+          git add -A
+          git diff --cached --quiet && exit 0
+          git commit -m "feat: publish CPUBench evidence campaign alpha"
+          git push origin HEAD:main
