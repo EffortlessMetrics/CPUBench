@@ -182,3 +182,112 @@ def test_timer_control_without_positive_delta_remains_unqualified() -> None:
     qualification = qualifications["python.time.monotonic_ns"]
     assert qualification.state == CapabilityState.AVAILABLE_UNQUALIFIED
     assert qualification.reason_code == "timer_positive_resolution_not_observed"
+
+
+def test_failed_timer_control_blocks_qualification() -> None:
+    valid_item = _item("control-valid", "controls.timer_overhead").model_copy(update={"sequence_index": 0})
+    failed_item = _item("control-failed", "controls.timer_overhead").model_copy(update={"sequence_index": 1})
+    plan = RunPlan(
+        campaign_id="timer-test",
+        campaign_spec_id="sha256:campaign",
+        instrument_release_id="sha256:instrument",
+        pack_release_ids={"controls": "sha256:pack"},
+        profile_id="sha256:profile",
+        machine_receipt_id="sha256:machine",
+        run_environment_receipt_id="sha256:environment",
+        schedule_seed=1,
+        items=[valid_item, failed_item],
+    ).with_semantic_id()
+    failed = AttemptRecord(
+        attempt_id="control-failed",
+        state=AttemptState.EXECUTION_FAILED,
+        family_id="controls.timer_overhead",
+        point_id="timer-control",
+        provider_id="python-control",
+        provider_stdout='{"record_type":"metadata","timer":"python.time.monotonic_ns"}\n',
+        reason_code="provider_nonzero_exit",
+    ).with_semantic_id()
+
+    qualifications = _derive_timer_qualifications(
+        plan,
+        {
+            "control-valid": _attempt("control-valid"),
+            "control-failed": failed,
+        },
+        _profile(),
+        _machine(),
+    )
+
+    qualification = qualifications["python.time.monotonic_ns"]
+    assert qualification.state == CapabilityState.FAILED
+    assert qualification.reason_code == "timer_control_attempt_failed"
+    assert qualification.failed_control_attempt_ids == ["control-failed"]
+    assert qualification.control_attempt_ids == ["control-failed", "control-valid"]
+
+
+def test_invalid_timer_control_work_does_not_set_threshold() -> None:
+    item = _item("control", "controls.timer_overhead")
+    qualifications = _derive_timer_qualifications(
+        _plan(item),
+        {"control": _attempt("control", completed_units=10_000)},
+        _profile(),
+        _machine(),
+    )
+
+    qualification = qualifications["python.time.monotonic_ns"]
+    assert qualification.state == CapabilityState.FAILED
+    assert qualification.reason_code == "timer_control_work_invalid"
+    assert qualification.invalid_control_attempt_ids == ["control"]
+    assert qualification.read_overhead_ns is None
+    assert qualification.minimum_sample_duration_ns is None
+
+
+def test_profile_rejects_unbounded_timer_ratio() -> None:
+    import pytest
+    from pydantic import ValidationError
+
+    with pytest.raises(ValidationError):
+        _profile(ratio=float("inf"))
+    with pytest.raises(ValidationError):
+        _profile(ratio=1_000_001.0)
+
+
+def test_python_timer_control_detects_reversal_between_pairs(monkeypatch: object, capsys: object) -> None:
+    import json
+
+    from cpubench.providers import control
+
+    readings = iter([100, 110, 120, 90, 100, 130])
+    monkeypatch.setattr(control.time, "monotonic_ns", lambda: next(readings))  # type: ignore[attr-defined]
+
+    assert control.run_timer_overhead(samples=1, warmups=0, completed_units=2) == 0
+    output = capsys.readouterr().out.splitlines()  # type: ignore[attr-defined]
+    sample = json.loads(output[-1])
+    assert sample["non_monotonic_count"] == 1
+
+
+def test_python_timer_control_rejects_reversed_outer_interval(monkeypatch: object, capsys: object) -> None:
+    from cpubench.providers import control
+
+    readings = iter([100, 110, 120, 90])
+    monkeypatch.setattr(control.time, "monotonic_ns", lambda: next(readings))  # type: ignore[attr-defined]
+
+    assert control.run_timer_overhead(samples=1, warmups=0, completed_units=1) == 3
+    assert "outer interval reversed" in capsys.readouterr().err  # type: ignore[attr-defined]
+
+
+def test_python_timer_control_carries_warmup_reversal(monkeypatch: object, capsys: object) -> None:
+    import json
+
+    from cpubench.providers import control
+
+    readings = iter([
+        100, 110, 90, 120,  # warmup: reversal within the pair
+        130, 140, 150, 160,  # retained sample: monotonic
+    ])
+    monkeypatch.setattr(control.time, "monotonic_ns", lambda: next(readings))  # type: ignore[attr-defined]
+
+    assert control.run_timer_overhead(samples=1, warmups=1, completed_units=1) == 0
+    output = capsys.readouterr().out.splitlines()  # type: ignore[attr-defined]
+    sample = json.loads(output[-1])
+    assert sample["non_monotonic_count"] == 1

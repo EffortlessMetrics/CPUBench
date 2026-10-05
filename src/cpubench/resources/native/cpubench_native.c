@@ -231,9 +231,12 @@ static int run_timer_overhead(int argc, char **argv) {
     }
 
     printf("{\"record_type\":\"metadata\",\"family_id\":\"controls.native_timer_overhead\",\"timer\":\"%s\",\"timer_control\":true,\"setup_excluded\":true}\n", timer_name());
+    uint64_t previous_reading = 0;
+    uint64_t carried_non_monotonic_count = 0;
     for (uint64_t sample = 0; sample < warmups + samples; ++sample) {
         uint64_t checksum = 0;
-        uint64_t non_monotonic_count = 0;
+        uint64_t non_monotonic_count = carried_non_monotonic_count;
+        carried_non_monotonic_count = 0;
         uint64_t zero_delta_count = 0;
         uint64_t min_positive_delta_ns = UINT64_MAX;
         uint64_t max_delta_ns = 0;
@@ -243,19 +246,33 @@ static int run_timer_overhead(int argc, char **argv) {
             fprintf(stderr, "timer failure\n");
             return 3;
         }
+        if (previous_reading != 0 && outer_start < previous_reading) {
+            ++non_monotonic_count;
+        }
+        previous_reading = outer_start;
         for (uint64_t i = 0; i < completed_units; ++i) {
             uint64_t a = now_ns();
+            if (a == 0) {
+                fprintf(stderr, "timer failure\n");
+                return 3;
+            }
+            if (a < previous_reading) {
+                ++non_monotonic_count;
+            }
+            previous_reading = a;
+
             uint64_t b = now_ns();
-            if (a == 0 || b == 0) {
+            if (b == 0) {
                 fprintf(stderr, "timer failure\n");
                 return 3;
             }
             uint64_t delta = 0;
-            if (b < a) {
+            if (b < previous_reading) {
                 ++non_monotonic_count;
             } else {
                 delta = b - a;
             }
+            previous_reading = b;
             if (delta == 0) {
                 ++zero_delta_count;
             } else {
@@ -270,11 +287,20 @@ static int run_timer_overhead(int argc, char **argv) {
             checksum ^= delta;
         }
         uint64_t outer_end = now_ns();
-        if (outer_end == 0 || outer_end < outer_start) {
+        if (outer_end == 0) {
             fprintf(stderr, "timer failure\n");
             return 3;
         }
+        if (outer_end < previous_reading) {
+            ++non_monotonic_count;
+        }
+        previous_reading = outer_end;
+        if (outer_end < outer_start) {
+            fprintf(stderr, "timer failure: outer interval reversed\n");
+            return 3;
+        }
         if (sample < warmups) {
+            carried_non_monotonic_count += non_monotonic_count;
             continue;
         }
         uint64_t elapsed = outer_end - outer_start;

@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections import defaultdict
 from collections.abc import Iterable
 from dataclasses import dataclass, field
+import json
 import math
 from pathlib import Path
 from statistics import median
@@ -63,14 +64,93 @@ def _machine_timer_capability(timer: str, machine: MachineReceipt) -> Capability
     return capability.state if capability is not None else None
 
 
+MAX_TIMER_SAMPLE_DURATION_NS = (1 << 63) - 1
+_TIMER_CONTROL_FAMILIES = {"controls.timer_overhead", "controls.native_timer_overhead"}
+
+
 @dataclass
 class _TimerObservations:
     attempt_ids: list[str] = field(default_factory=list)
+    failed_attempt_ids: list[str] = field(default_factory=list)
+    invalid_attempt_ids: list[str] = field(default_factory=list)
+    failure_details: list[str] = field(default_factory=list)
     read_overheads: list[float] = field(default_factory=list)
     resolutions: list[int] = field(default_factory=list)
     observations: int = 0
     non_monotonic: int = 0
     zero_delta: int = 0
+
+
+def _completed_units_result(attempt: AttemptRecord, item: RunPlanItem) -> ObligationResult:
+    obligation_id = "work.completed_units"
+    if not attempt.samples:
+        return _result(obligation_id, ValidityOutcome.FAIL, "completed_units_missing")
+    expected = item.parameters.get("completed_units")
+    values = [sample.completed_units for sample in attempt.samples]
+    if any(value <= 0 for value in values):
+        return _result(obligation_id, ValidityOutcome.FAIL, "completed_units_zero")
+    if expected is not None and any(value != int(expected) for value in values):
+        return _result(
+            obligation_id,
+            ValidityOutcome.FAIL,
+            "completed_units_mismatch",
+            f"expected={expected}; observed={values}",
+        )
+    return _result(obligation_id, ValidityOutcome.PASS, "completed_units_match")
+
+
+def _checksum_result(attempt: AttemptRecord) -> ObligationResult:
+    obligation_id = "work.output_checksum"
+    checksums = [sample.checksum for sample in attempt.samples]
+    if checksums and all(checksum and checksum.lower() not in {"invalid", "none"} for checksum in checksums):
+        return _result(obligation_id, ValidityOutcome.PASS, "checksum_present")
+    return _result(obligation_id, ValidityOutcome.FAIL, "checksum_missing")
+
+
+def _metadata_timers(attempt: AttemptRecord) -> set[str]:
+    timers: set[str] = {
+        sample.timer for sample in attempt.samples if sample.timer and sample.timer != "unknown"
+    }
+    metadata_timer = attempt.effective_parameters.get("timer")
+    if isinstance(metadata_timer, str) and metadata_timer and metadata_timer != "unknown":
+        timers.add(metadata_timer)
+    for line in attempt.provider_stdout.splitlines():
+        try:
+            payload = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if not isinstance(payload, dict) or payload.get("record_type") != "metadata":
+            continue
+        value = payload.get("timer")
+        if isinstance(value, str) and value and value != "unknown":
+            timers.add(value)
+    return timers
+
+
+def _fallback_control_timers(item: RunPlanItem, machine: MachineReceipt) -> set[str]:
+    if item.family_id == "controls.timer_overhead":
+        return {"python.time.monotonic_ns"}
+    if item.family_id != "controls.native_timer_overhead":
+        return set()
+    system = str(machine.system.get("os", "")).lower()
+    if system == "windows":
+        return {"QueryPerformanceCounter"}
+    if system in {"linux", "darwin", "macos"}:
+        # The provider selects RAW where the platform exposes it and otherwise
+        # falls back to MONOTONIC. A failed process may not report which path it
+        # reached, so fail closed for both possible native interval timers.
+        return {"CLOCK_MONOTONIC_RAW", "CLOCK_MONOTONIC"}
+    return set()
+
+
+def _control_timers(item: RunPlanItem, attempt: AttemptRecord | None, machine: MachineReceipt) -> set[str]:
+    timers = _metadata_timers(attempt) if attempt is not None else set()
+    return timers or _fallback_control_timers(item, machine)
+
+
+def _timer_control_work_failures(attempt: AttemptRecord, item: RunPlanItem) -> list[ObligationResult]:
+    results = [_completed_units_result(attempt, item), _checksum_result(attempt)]
+    return [result for result in results if result.outcome != ValidityOutcome.PASS]
 
 
 def _derive_timer_qualifications(
@@ -80,21 +160,58 @@ def _derive_timer_qualifications(
     machine: MachineReceipt,
 ) -> dict[str, TimerQualification]:
     controls: dict[str, _TimerObservations] = defaultdict(_TimerObservations)
-    control_families = {"controls.timer_overhead", "controls.native_timer_overhead"}
     for item in plan.items:
-        if item.family_id not in control_families:
+        if item.family_id not in _TIMER_CONTROL_FAMILIES:
             continue
         attempt = attempts.get(item.attempt_id)
-        if attempt is None or attempt.state != AttemptState.COMPLETED:
-            continue
-        timers = {sample.timer for sample in attempt.samples if sample.timer and sample.timer != "unknown"}
+        timers = _control_timers(item, attempt, machine)
         for timer in timers:
             bucket = controls[timer]
-            bucket.attempt_ids.append(attempt.attempt_id)
-            for sample in attempt.samples:
-                if sample.timer != timer:
-                    continue
-                bucket.read_overheads.append(sample.elapsed_ns / sample.completed_units)
+            bucket.attempt_ids.append(item.attempt_id)
+            if attempt is None:
+                bucket.failed_attempt_ids.append(item.attempt_id)
+                bucket.failure_details.append(f"{item.attempt_id}:missing_attempt")
+                continue
+            if attempt.state != AttemptState.COMPLETED:
+                bucket.failed_attempt_ids.append(item.attempt_id)
+                bucket.failure_details.append(
+                    f"{item.attempt_id}:{attempt.state.value}:{attempt.reason_code or 'no_reason'}"
+                )
+                continue
+
+            work_failures = _timer_control_work_failures(attempt, item)
+            timer_samples = [sample for sample in attempt.samples if sample.timer == timer]
+            if work_failures or not timer_samples:
+                bucket.invalid_attempt_ids.append(item.attempt_id)
+                if work_failures:
+                    bucket.failure_details.extend(
+                        f"{item.attempt_id}:{failure.obligation_id}:{failure.reason_code}"
+                        for failure in work_failures
+                    )
+                if not timer_samples:
+                    bucket.failure_details.append(f"{item.attempt_id}:timer_samples_missing:{timer}")
+                continue
+
+            sample_invalid = False
+            sample_overheads: list[float] = []
+            for sample in timer_samples:
+                try:
+                    overhead = sample.elapsed_ns / sample.completed_units
+                except (OverflowError, ZeroDivisionError):
+                    sample_invalid = True
+                    bucket.failure_details.append(f"{item.attempt_id}:timer_overhead_unrepresentable")
+                    break
+                if not math.isfinite(overhead) or overhead <= 0:
+                    sample_invalid = True
+                    bucket.failure_details.append(f"{item.attempt_id}:timer_overhead_invalid:{overhead}")
+                    break
+                sample_overheads.append(overhead)
+            if sample_invalid:
+                bucket.invalid_attempt_ids.append(item.attempt_id)
+                continue
+
+            bucket.read_overheads.extend(sample_overheads)
+            for sample in timer_samples:
                 resolution = int(sample.metrics.get("min_positive_delta_ns", 0))
                 if resolution > 0:
                     bucket.resolutions.append(resolution)
@@ -110,19 +227,30 @@ def _derive_timer_qualifications(
         machine_state = _machine_timer_capability(timer, machine)
         read_overhead = median(read_overheads) if read_overheads else None
         effective_resolution = min(resolutions) if resolutions else None
-        minimum_duration = None
+        minimum_duration: int | None = None
+        duration_error: str | None = None
         if read_overhead is not None and effective_resolution is not None:
-            minimum_duration = max(
-                1,
-                math.ceil(max(read_overhead, float(effective_resolution)) * profile.minimum_timer_overhead_ratio),
-            )
+            scaled_duration = max(read_overhead, float(effective_resolution)) * profile.minimum_timer_overhead_ratio
+            if not math.isfinite(scaled_duration) or scaled_duration > MAX_TIMER_SAMPLE_DURATION_NS:
+                duration_error = f"scaled_duration_ns={scaled_duration}"
+            else:
+                minimum_duration = max(1, math.ceil(scaled_duration))
 
         if machine_state in {CapabilityState.FAILED, CapabilityState.UNSUPPORTED}:
             state = machine_state
             reason_code = "machine_timer_capability_rejected"
+        elif bucket.failed_attempt_ids:
+            state = CapabilityState.FAILED
+            reason_code = "timer_control_attempt_failed"
+        elif bucket.invalid_attempt_ids:
+            state = CapabilityState.FAILED
+            reason_code = "timer_control_work_invalid"
         elif non_monotonic > 0:
             state = CapabilityState.FAILED
             reason_code = "timer_non_monotonic_observation"
+        elif duration_error is not None:
+            state = CapabilityState.FAILED
+            reason_code = "timer_minimum_duration_unrepresentable"
         elif effective_resolution is None:
             state = CapabilityState.AVAILABLE_UNQUALIFIED
             reason_code = "timer_positive_resolution_not_observed"
@@ -133,10 +261,22 @@ def _derive_timer_qualifications(
             state = CapabilityState.QUALIFIED
             reason_code = "timer_control_qualified"
 
+        details = [
+            f"read_overhead_ns={read_overhead}",
+            f"effective_resolution_ns={effective_resolution}",
+            f"minimum_sample_duration_ns={minimum_duration}",
+        ]
+        if duration_error is not None:
+            details.append(duration_error)
+        if bucket.failure_details:
+            details.append(f"control_failures={bucket.failure_details}")
+
         result[timer] = TimerQualification(
             timer=timer,
             state=state,
             control_attempt_ids=sorted(set(bucket.attempt_ids)),
+            failed_control_attempt_ids=sorted(set(bucket.failed_attempt_ids)),
+            invalid_control_attempt_ids=sorted(set(bucket.invalid_attempt_ids)),
             observations=bucket.observations,
             non_monotonic_observations=non_monotonic,
             zero_delta_observations=bucket.zero_delta,
@@ -145,10 +285,7 @@ def _derive_timer_qualifications(
             minimum_sample_duration_ns=minimum_duration,
             overhead_ratio=profile.minimum_timer_overhead_ratio,
             reason_code=reason_code,
-            detail=(
-                f"read_overhead_ns={read_overhead}; effective_resolution_ns={effective_resolution}; "
-                f"minimum_sample_duration_ns={minimum_duration}"
-            ),
+            detail="; ".join(details),
         )
     return result
 
@@ -211,26 +348,10 @@ def _evaluate_obligation(
     timer_qualifications: dict[str, TimerQualification],
 ) -> ObligationResult:
     if obligation_id == "work.completed_units":
-        if not attempt.samples:
-            return _result(obligation_id, ValidityOutcome.FAIL, "completed_units_missing")
-        expected = item.parameters.get("completed_units")
-        values = [sample.completed_units for sample in attempt.samples]
-        if any(value <= 0 for value in values):
-            return _result(obligation_id, ValidityOutcome.FAIL, "completed_units_zero")
-        if expected is not None and any(value != int(expected) for value in values):
-            return _result(
-                obligation_id,
-                ValidityOutcome.FAIL,
-                "completed_units_mismatch",
-                f"expected={expected}; observed={values}",
-            )
-        return _result(obligation_id, ValidityOutcome.PASS, "completed_units_match")
+        return _completed_units_result(attempt, item)
 
     if obligation_id == "work.output_checksum":
-        checksums = [sample.checksum for sample in attempt.samples]
-        if checksums and all(checksum and checksum.lower() not in {"invalid", "none"} for checksum in checksums):
-            return _result(obligation_id, ValidityOutcome.PASS, "checksum_present")
-        return _result(obligation_id, ValidityOutcome.FAIL, "checksum_missing")
+        return _checksum_result(attempt)
 
     if obligation_id == "work.valid_cycle":
         value = attempt.effective_parameters.get("cycle_validated")

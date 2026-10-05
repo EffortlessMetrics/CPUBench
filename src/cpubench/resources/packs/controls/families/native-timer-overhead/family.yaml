@@ -12,6 +12,12 @@ work_contract:
   input_population: fixed iteration counts
   required_output: retained delta statistics and an exact completed observation count
   quality_or_tolerance: no non-monotonic observation; at least one positive delta
+resource_budget:
+  expected_wall_seconds_per_attempt: 0.25
+  maximum_wall_seconds_per_attempt: 5.0
+  peak_memory_bytes: 8388608
+  output_bytes_per_attempt: 262144
+  privilege: none
 
 demand_geometry:
   timer_reads_per_unit: 2

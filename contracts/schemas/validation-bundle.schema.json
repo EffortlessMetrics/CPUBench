@@ -115,6 +115,20 @@
           "default": null,
           "title": "Effective Resolution Ns"
         },
+        "failed_control_attempt_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Failed Control Attempt Ids",
+          "type": "array"
+        },
+        "invalid_control_attempt_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Invalid Control Attempt Ids",
+          "type": "array"
+        },
         "minimum_sample_duration_ns": {
           "anyOf": [
             {
@@ -139,6 +153,7 @@
           "type": "integer"
         },
         "overhead_ratio": {
+          "maximum": 1000000.0,
           "minimum": 10.0,
           "title": "Overhead Ratio",
           "type": "number"

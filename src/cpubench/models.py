@@ -149,6 +149,20 @@ class WorkContract(StrictModel):
     quality_or_tolerance: str
 
 
+class ResourceBudget(StrictModel):
+    expected_wall_seconds_per_attempt: float = Field(gt=0)
+    maximum_wall_seconds_per_attempt: float = Field(gt=0)
+    peak_memory_bytes: int = Field(ge=0)
+    output_bytes_per_attempt: int = Field(ge=0)
+    privilege: Literal["none", "optional", "required"] = "none"
+
+    @model_validator(mode="after")
+    def maximum_covers_expected(self) -> Self:
+        if self.maximum_wall_seconds_per_attempt < self.expected_wall_seconds_per_attempt:
+            raise ValueError("maximum wall time must cover expected wall time")
+        return self
+
+
 class PointSpec(StrictModel):
     point_id: str
     parameters: dict[str, int | float | str | bool]
@@ -178,6 +192,7 @@ class FamilySpec(ArtifactModel):
     evaluated_object: str
     provider_id: str
     work_contract: WorkContract
+    resource_budget: ResourceBudget | None = None
     demand_geometry: dict[str, Any]
     intervention_axes: list[str]
     invariants: list[str]
@@ -270,7 +285,9 @@ class ProfileSpec(ArtifactModel):
     warmup_samples: int = Field(ge=0)
     unit_scale: float = Field(gt=0)
     timeout_seconds: float = Field(gt=0)
-    minimum_timer_overhead_ratio: float = Field(default=100.0, ge=10.0)
+    minimum_timer_overhead_ratio: float = Field(
+        default=100.0, ge=10.0, le=1_000_000.0, allow_inf_nan=False
+    )
     randomized_interleaving: bool = True
     include_tags: list[str] = Field(default_factory=list)
 
@@ -426,13 +443,15 @@ class TimerQualification(StrictModel):
     timer: str
     state: CapabilityState
     control_attempt_ids: list[str]
+    failed_control_attempt_ids: list[str] = Field(default_factory=list)
+    invalid_control_attempt_ids: list[str] = Field(default_factory=list)
     observations: int = Field(ge=0)
     non_monotonic_observations: int = Field(ge=0)
     zero_delta_observations: int = Field(ge=0)
     read_overhead_ns: float | None = Field(default=None, gt=0)
     effective_resolution_ns: int | None = Field(default=None, gt=0)
     minimum_sample_duration_ns: int | None = Field(default=None, gt=0)
-    overhead_ratio: float = Field(ge=10.0)
+    overhead_ratio: float = Field(ge=10.0, le=1_000_000.0, allow_inf_nan=False)
     reason_code: str
     detail: str | None = None
 

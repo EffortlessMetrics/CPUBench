@@ -26,6 +26,7 @@
     },
     "minimum_timer_overhead_ratio": {
       "default": 100.0,
+      "maximum": 1000000.0,
       "minimum": 10.0,
       "title": "Minimum Timer Overhead Ratio",
       "type": "number"

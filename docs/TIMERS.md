@@ -62,6 +62,8 @@ minimum sample duration
        × profile.minimum_timer_overhead_ratio)
 ```
 
+The ratio is finite and bounded to the range `10×` through `1,000,000×`. A profile outside that range is rejected during authoring rather than allowed to overflow campaign validation. Derived minimum durations must also fit a signed 64-bit nanosecond interval; otherwise timer qualification fails closed.
+
 The current profile policies are:
 
 | Profile | Minimum ratio |
@@ -79,11 +81,13 @@ These ratios are explicit policy, not universal physical constants. Instrument v
 |---|---|
 | `qualified` | Positive resolution and read overhead were observed, with no non-monotonic control observations. |
 | `available_unqualified` | The source exists, but required calibration evidence is incomplete. |
-| `failed` | The timer reversed, the platform capability failed, or another blocking defect was observed. |
+| `failed` | The timer reversed, a planned control failed, control work was invalid, the platform capability failed, or another blocking defect was observed. |
 | `unsupported` | The platform cannot provide the requested timer authority. |
 | `unknown` | Available evidence does not establish the state. |
 
 Zero-delta observations are retained because timer granularity can legitimately produce them. Qualification requires at least one positive delta. Any non-monotonic control observation fails the timer for the campaign.
+
+Qualification accounts for every planned timer-control attempt. A missing, timed-out, crashed, or otherwise non-completed control blocks qualification even when sibling attempts succeeded. Completed controls must first pass their completed-unit and checksum obligations; invalid control work cannot establish a sample-duration floor.
 
 ## Sample validity
 
@@ -109,6 +113,7 @@ timer_control_missing
 
 ```text
 control attempt identities
+failed and invalid control attempt identities
 observation count
 non-monotonic and zero-delta counts
 read-pair overhead

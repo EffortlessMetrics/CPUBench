@@ -167,6 +167,8 @@ def generate_report(campaign_dir: Path) -> Path:
         f"<td>{_human_ns(qualification.minimum_sample_duration_ns)}</td>"
         f"<td>{qualification.observations:,}</td>"
         f"<td>{qualification.non_monotonic_observations:,}</td>"
+        f"<td>{len(qualification.failed_control_attempt_ids):,}</td>"
+        f"<td>{len(qualification.invalid_control_attempt_ids):,}</td>"
         f"<td>{html.escape(qualification.reason_code)}</td>"
         "</tr>"
         for timer, qualification in sorted(validation.timer_qualifications.items())
@@ -240,7 +242,7 @@ footer {{ margin-top:34px; color:#5f5953; font-size:.9rem; }}
 </section>
 <section>
 <h2>Timer qualification</h2>
-<table><thead><tr><th>Timer</th><th>State</th><th>Read overhead</th><th>Effective resolution</th><th>Minimum sample</th><th>Observations</th><th>Non-monotonic</th><th>Reason</th></tr></thead><tbody>{timer_qualification_rows}</tbody></table>
+<table><thead><tr><th>Timer</th><th>State</th><th>Read overhead</th><th>Effective resolution</th><th>Minimum sample</th><th>Observations</th><th>Non-monotonic</th><th>Failed controls</th><th>Invalid controls</th><th>Reason</th></tr></thead><tbody>{timer_qualification_rows}</tbody></table>
 </section>
 <section>
 <h2>Measurement authority</h2>
@@ -290,8 +292,8 @@ footer {{ margin-top:34px; color:#5f5953; font-size:.9rem; }}
             "",
             "## Timer qualification",
             "",
-            "| Timer | State | Read overhead | Effective resolution | Minimum sample | Observations | Non-monotonic |",
-            "|---|---|---:|---:|---:|---:|---:|",
+            "| Timer | State | Read overhead | Effective resolution | Minimum sample | Observations | Non-monotonic | Failed controls | Invalid controls | Reason |",
+            "|---|---|---:|---:|---:|---:|---:|---:|---:|---|",
         ]
     )
     for timer, qualification in sorted(validation.timer_qualifications.items()):
@@ -299,7 +301,9 @@ footer {{ margin-top:34px; color:#5f5953; font-size:.9rem; }}
             f"| `{timer}` | `{qualification.state.value}` | {_human_ns(qualification.read_overhead_ns)} | "
             f"{_human_ns(qualification.effective_resolution_ns)} | "
             f"{_human_ns(qualification.minimum_sample_duration_ns)} | "
-            f"{qualification.observations} | {qualification.non_monotonic_observations} |"
+            f"{qualification.observations} | {qualification.non_monotonic_observations} | "
+            f"{len(qualification.failed_control_attempt_ids)} | "
+            f"{len(qualification.invalid_control_attempt_ids)} | `{qualification.reason_code}` |"
         )
     markdown_lines.extend(
         [

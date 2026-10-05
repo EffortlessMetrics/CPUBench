@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 import time
 from typing import Any
 
@@ -42,22 +43,34 @@ def emit(value: dict[str, Any]) -> None:
 def run_timer_overhead(samples: int, warmups: int, completed_units: int) -> int:
     timer = "python.time.monotonic_ns"
     emit({"record_type": "metadata", "setup_excluded": True, "timer": timer, "timer_control": True})
+    previous_reading: int | None = None
+    carried_non_monotonic_count = 0
     for sample_index in range(warmups + samples):
+        non_monotonic_count = carried_non_monotonic_count
+        carried_non_monotonic_count = 0
         start = time.monotonic_ns()
+        if previous_reading is not None and start < previous_reading:
+            non_monotonic_count += 1
+        previous_reading = start
         checksum = 0
-        non_monotonic_count = 0
         zero_delta_count = 0
         min_positive_delta_ns: int | None = None
         max_delta_ns = 0
         sum_pair_delta_ns = 0
         for _ in range(completed_units):
             a = time.monotonic_ns()
+            if a < previous_reading:
+                non_monotonic_count += 1
+            previous_reading = a
+
             b = time.monotonic_ns()
-            if b < a:
+            if b < previous_reading:
                 non_monotonic_count += 1
                 delta = 0
             else:
                 delta = b - a
+            previous_reading = b
+
             if delta == 0:
                 zero_delta_count += 1
             else:
@@ -67,8 +80,16 @@ def run_timer_overhead(samples: int, warmups: int, completed_units: int) -> int:
                 max_delta_ns = max(max_delta_ns, delta)
             sum_pair_delta_ns += delta
             checksum ^= delta
+
         end = time.monotonic_ns()
+        if end < previous_reading:
+            non_monotonic_count += 1
+        previous_reading = end
+        if end < start:
+            print("timer failure: outer interval reversed", file=sys.stderr)
+            return 3
         if sample_index < warmups:
+            carried_non_monotonic_count += non_monotonic_count
             continue
         emit(
             {
@@ -94,6 +115,9 @@ def run_sleep_interval(samples: int, warmups: int, sleep_ns: int) -> int:
         start = time.monotonic_ns()
         time.sleep(sleep_ns / 1_000_000_000)
         end = time.monotonic_ns()
+        if end < start:
+            print("timer failure: sleep interval reversed", file=sys.stderr)
+            return 3
         if sample_index < warmups:
             continue
         emit(
