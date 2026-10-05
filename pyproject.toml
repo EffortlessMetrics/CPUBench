@@ -43,6 +43,7 @@ dev = [
   "pytest>=9,<10",
   "pytest-cov>=7,<8",
   "ruff>=0.13,<1",
+  "types-psutil>=7.0.0.20250822",
   "types-PyYAML>=6.0.12",
 ]
 
