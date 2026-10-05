@@ -64,14 +64,22 @@ def _cache_summary() -> list[dict[str, Any]]:
 
 def _timer_capability() -> CapabilityEvidence:
     info = time.get_clock_info("monotonic")
-    state = CapabilityState.QUALIFIED if info.monotonic and not info.adjustable else CapabilityState.AVAILABLE_UNQUALIFIED
+    if not info.monotonic:
+        state = CapabilityState.FAILED
+        detail = "The host Python monotonic clock reports that it is not monotonic."
+    else:
+        state = CapabilityState.AVAILABLE_UNQUALIFIED
+        detail = (
+            "A monotonic interval clock is exposed by the host Python runtime. "
+            "Campaign controls must still measure read overhead and effective resolution."
+        )
     return CapabilityEvidence(
         state=state,
         authority="python.time.monotonic_ns",
-        detail="Monotonic interval clock exposed by the host Python runtime.",
+        detail=detail,
         evidence={
             "implementation": info.implementation,
-            "resolution_seconds": info.resolution,
+            "nominal_resolution_seconds": info.resolution,
             "monotonic": info.monotonic,
             "adjustable": info.adjustable,
         },
@@ -91,11 +99,12 @@ def _native_timer_capability() -> CapabilityEvidence:
             detail="The bundled native provider timer has not been qualified on this platform.",
         )
     return CapabilityEvidence(
-        state=CapabilityState.QUALIFIED,
+        state=CapabilityState.AVAILABLE_UNQUALIFIED,
         authority=authority,
         detail=(
-            "Qualified for monotonic elapsed-interval use in the portable_elapsed view. "
-            "Mechanism views still require separate overhead, resolution, and cross-core qualification."
+            "A platform monotonic interval timer is available to the bundled native provider. "
+            "Campaign controls must measure read overhead, effective resolution, and monotonicity "
+            "before performance samples enter portable_elapsed views."
         ),
     )
 

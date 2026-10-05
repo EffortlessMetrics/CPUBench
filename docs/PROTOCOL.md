@@ -13,12 +13,12 @@ Print one JSON `ProviderDescriptor` to stdout and exit zero.
   "artifact_kind": "provider_descriptor",
   "schema_version": 1,
   "provider_id": "native-c11",
-  "provider_version": "0.1.0",
+  "provider_version": "0.2.0",
   "protocol_version": 1,
   "families": [
     {
       "family_id": "memory.dependent_load_latency",
-      "implementation_id": "native-c11-v0",
+      "implementation_id": "native-c11-v1",
       "supported_os": ["linux", "windows", "darwin"],
       "supported_arch": ["x86_64", "aarch64"],
       "timing_authority": "provider_elapsed",
@@ -106,6 +106,10 @@ The provider emits raw quantities. `ns/unit`, throughput, ratios, and aggregate 
 | `64` | Family, parameter, or capability unsupported |
 
 The control plane converts these into explicit terminal states. No missing or failed attempt becomes a performance value.
+
+## Timer qualification
+
+Nominal platform availability does not make a timer qualified. Campaigns include matched timer-overhead controls for every timer used by eligible workloads. Validation derives observed read-pair overhead, positive effective resolution, monotonicity evidence, and the profile-specific minimum sample duration. Samples below that threshold are instrument-invalid. See [Timer qualification](TIMERS.md).
 
 ## Timed-region authority
 

@@ -13,7 +13,7 @@
 #endif
 
 #define PROVIDER_ID "native-c11"
-#define PROVIDER_VERSION "0.1.0"
+#define PROVIDER_VERSION "0.2.0"
 
 static const char *timer_name(void) {
 #ifdef _WIN32
@@ -215,10 +215,87 @@ static uint64_t run_chase(const uint32_t *next, uint32_t *starts, unsigned chain
     }
 }
 
+static int run_timer_overhead(int argc, char **argv) {
+    const char *units_text = arg_value(argc, argv, "--completed-units");
+    const char *samples_text = arg_value(argc, argv, "--samples");
+    const char *warmup_text = arg_value(argc, argv, "--warmup-samples");
+    uint64_t completed_units = 0, samples = 0, warmups = 0;
+
+    if (units_text == NULL || samples_text == NULL ||
+        parse_u64(units_text, &completed_units) != 0 ||
+        parse_u64(samples_text, &samples) != 0 ||
+        (warmup_text != NULL && parse_u64(warmup_text, &warmups) != 0) ||
+        completed_units == 0 || samples == 0) {
+        fprintf(stderr, "invalid native timer-control dimensions\n");
+        return 2;
+    }
+
+    printf("{\"record_type\":\"metadata\",\"family_id\":\"controls.native_timer_overhead\",\"timer\":\"%s\",\"timer_control\":true,\"setup_excluded\":true}\n", timer_name());
+    for (uint64_t sample = 0; sample < warmups + samples; ++sample) {
+        uint64_t checksum = 0;
+        uint64_t non_monotonic_count = 0;
+        uint64_t zero_delta_count = 0;
+        uint64_t min_positive_delta_ns = UINT64_MAX;
+        uint64_t max_delta_ns = 0;
+        uint64_t sum_pair_delta_ns = 0;
+        uint64_t outer_start = now_ns();
+        if (outer_start == 0) {
+            fprintf(stderr, "timer failure\n");
+            return 3;
+        }
+        for (uint64_t i = 0; i < completed_units; ++i) {
+            uint64_t a = now_ns();
+            uint64_t b = now_ns();
+            if (a == 0 || b == 0) {
+                fprintf(stderr, "timer failure\n");
+                return 3;
+            }
+            uint64_t delta = 0;
+            if (b < a) {
+                ++non_monotonic_count;
+            } else {
+                delta = b - a;
+            }
+            if (delta == 0) {
+                ++zero_delta_count;
+            } else {
+                if (delta < min_positive_delta_ns) {
+                    min_positive_delta_ns = delta;
+                }
+                if (delta > max_delta_ns) {
+                    max_delta_ns = delta;
+                }
+            }
+            sum_pair_delta_ns += delta;
+            checksum ^= delta;
+        }
+        uint64_t outer_end = now_ns();
+        if (outer_end == 0 || outer_end < outer_start) {
+            fprintf(stderr, "timer failure\n");
+            return 3;
+        }
+        if (sample < warmups) {
+            continue;
+        }
+        uint64_t elapsed = outer_end - outer_start;
+        if (elapsed == 0) {
+            elapsed = 1;
+        }
+        uint64_t effective_resolution = min_positive_delta_ns == UINT64_MAX ? 0 : min_positive_delta_ns;
+        printf("{\"record_type\":\"sample\",\"sample_index\":%" PRIu64 ",\"elapsed_ns\":%" PRIu64 ",\"completed_units\":%" PRIu64 ",\"checksum\":\"timer:%016" PRIx64 ":%" PRIu64 ":%" PRIu64 "\",\"timer\":\"%s\",\"non_monotonic_count\":%" PRIu64 ",\"zero_delta_count\":%" PRIu64 ",\"min_positive_delta_ns\":%" PRIu64 ",\"max_delta_ns\":%" PRIu64 ",\"sum_pair_delta_ns\":%" PRIu64 "}\n",
+               sample - warmups, elapsed, completed_units, checksum,
+               non_monotonic_count, zero_delta_count, timer_name(),
+               non_monotonic_count, zero_delta_count, effective_resolution,
+               max_delta_ns, sum_pair_delta_ns);
+    }
+    return 0;
+}
+
 static int describe(void) {
     printf("{\"artifact_kind\":\"provider_descriptor\",\"schema_version\":1,\"provider_id\":\"%s\",\"provider_version\":\"%s\",\"protocol_version\":1,\"families\":[", PROVIDER_ID, PROVIDER_VERSION);
-    printf("{\"family_id\":\"memory.dependent_load_latency\",\"implementation_id\":\"native-c11-v0\",\"supported_os\":[\"linux\",\"windows\",\"darwin\"],\"supported_arch\":[\"x86_64\",\"amd64\",\"aarch64\",\"arm64\"],\"timing_authority\":\"provider_elapsed\",\"capabilities\":[]},");
-    printf("{\"family_id\":\"memory.memory_level_parallelism\",\"implementation_id\":\"native-c11-v0\",\"supported_os\":[\"linux\",\"windows\",\"darwin\"],\"supported_arch\":[\"x86_64\",\"amd64\",\"aarch64\",\"arm64\"],\"timing_authority\":\"provider_elapsed\",\"capabilities\":[]}");
+    printf("{\"family_id\":\"controls.native_timer_overhead\",\"implementation_id\":\"native-c11-v1\",\"supported_os\":[\"linux\",\"windows\",\"darwin\"],\"supported_arch\":[\"x86_64\",\"amd64\",\"aarch64\",\"arm64\"],\"timing_authority\":\"provider_elapsed\",\"capabilities\":[]},");
+    printf("{\"family_id\":\"memory.dependent_load_latency\",\"implementation_id\":\"native-c11-v1\",\"supported_os\":[\"linux\",\"windows\",\"darwin\"],\"supported_arch\":[\"x86_64\",\"amd64\",\"aarch64\",\"arm64\"],\"timing_authority\":\"provider_elapsed\",\"capabilities\":[]},");
+    printf("{\"family_id\":\"memory.memory_level_parallelism\",\"implementation_id\":\"native-c11-v1\",\"supported_os\":[\"linux\",\"windows\",\"darwin\"],\"supported_arch\":[\"x86_64\",\"amd64\",\"aarch64\",\"arm64\"],\"timing_authority\":\"provider_elapsed\",\"capabilities\":[]}");
     printf("]}\n");
     return 0;
 }
@@ -241,6 +318,14 @@ static int self_test(void) {
 
 static int run_benchmark(int argc, char **argv) {
     const char *family = arg_value(argc, argv, "--family");
+    if (family == NULL) {
+        fprintf(stderr, "missing required family argument\n");
+        return 2;
+    }
+    if (strcmp(family, "controls.native_timer_overhead") == 0) {
+        return run_timer_overhead(argc, argv);
+    }
+
     const char *working_text = arg_value(argc, argv, "--working-set-bytes");
     const char *chains_text = arg_value(argc, argv, "--chains");
     const char *units_text = arg_value(argc, argv, "--completed-units");
@@ -248,7 +333,7 @@ static int run_benchmark(int argc, char **argv) {
     const char *warmup_text = arg_value(argc, argv, "--warmup-samples");
     const char *seed_text = arg_value(argc, argv, "--seed");
 
-    if (family == NULL || working_text == NULL || units_text == NULL || samples_text == NULL) {
+    if (working_text == NULL || units_text == NULL || samples_text == NULL) {
         fprintf(stderr, "missing required run arguments\n");
         return 2;
     }

@@ -270,6 +270,7 @@ class ProfileSpec(ArtifactModel):
     warmup_samples: int = Field(ge=0)
     unit_scale: float = Field(gt=0)
     timeout_seconds: float = Field(gt=0)
+    minimum_timer_overhead_ratio: float = Field(default=100.0, ge=10.0)
     randomized_interleaving: bool = True
     include_tags: list[str] = Field(default_factory=list)
 
@@ -421,6 +422,21 @@ class AttemptValidation(StrictModel):
     obligations: list[ObligationResult]
 
 
+class TimerQualification(StrictModel):
+    timer: str
+    state: CapabilityState
+    control_attempt_ids: list[str]
+    observations: int = Field(ge=0)
+    non_monotonic_observations: int = Field(ge=0)
+    zero_delta_observations: int = Field(ge=0)
+    read_overhead_ns: float | None = Field(default=None, gt=0)
+    effective_resolution_ns: int | None = Field(default=None, gt=0)
+    minimum_sample_duration_ns: int | None = Field(default=None, gt=0)
+    overhead_ratio: float = Field(ge=10.0)
+    reason_code: str
+    detail: str | None = None
+
+
 class ValidationBundle(ArtifactModel):
     artifact_kind: Literal["validation_bundle"] = "validation_bundle"
     campaign_id: str
@@ -428,6 +444,7 @@ class ValidationBundle(ArtifactModel):
     validity_view: str
     attempts: list[AttemptValidation]
     coverage: dict[str, int]
+    timer_qualifications: dict[str, TimerQualification] = Field(default_factory=dict)
 
 
 class PointEstimate(StrictModel):

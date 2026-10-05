@@ -53,10 +53,14 @@ def test_control_only_campaign_end_to_end(tmp_path: Path) -> None:
     assert resumed_counts["completed"] == len(runtime.plan.items)
     validation = validate_campaign(runtime.store.root)
     assert validation.coverage["completed"] == len(runtime.plan.items)
+    assert {qualification.state.value for qualification in validation.timer_qualifications.values()} == {"qualified"}
+    assert "python.time.monotonic_ns" in validation.timer_qualifications
+    assert any(timer in validation.timer_qualifications for timer in {"CLOCK_MONOTONIC_RAW", "CLOCK_MONOTONIC", "QueryPerformanceCounter"})
     analysis = analyze_campaign(runtime.store.root)
     assert analysis.points
     report = generate_report(runtime.store.root)
     assert report.exists()
+    assert "Timer qualification" in report.read_text(encoding="utf-8")
     attempt_path = next((runtime.store.root / "attempts").glob("*/attempt.json"))
     stored_attempt = AttemptRecord.model_validate_json(attempt_path.read_text(encoding="utf-8"))
     recomputed = stored_attempt.model_copy(update={"semantic_id": None}).with_semantic_id()

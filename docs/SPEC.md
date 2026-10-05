@@ -53,6 +53,6 @@ The public repository contains adapter code and safe schemas only.
 
 ## Current status
 
-No SPEC adapter or SPEC asset is included in `0.1.0a0`.
+No SPEC adapter or SPEC asset is included in `0.2.0a0`.
 
 The exact licensed product/version, local source, and publication rules must be inventoried before implementation. See `SOURCE_LEDGER.yaml` and `RIGHTS_LEDGER.yaml`.

@@ -9,7 +9,7 @@ from cpubench.models import FamilyDescriptor, ProviderDescriptor
 
 
 PROVIDER_ID = "python-control"
-VERSION = "0.1.0"
+VERSION = "0.2.0"
 
 
 def descriptor() -> ProviderDescriptor:
@@ -40,14 +40,33 @@ def emit(value: dict[str, Any]) -> None:
 
 
 def run_timer_overhead(samples: int, warmups: int, completed_units: int) -> int:
-    emit({"record_type": "metadata", "setup_excluded": True, "timer": "python.time.monotonic_ns"})
+    timer = "python.time.monotonic_ns"
+    emit({"record_type": "metadata", "setup_excluded": True, "timer": timer, "timer_control": True})
     for sample_index in range(warmups + samples):
         start = time.monotonic_ns()
         checksum = 0
+        non_monotonic_count = 0
+        zero_delta_count = 0
+        min_positive_delta_ns: int | None = None
+        max_delta_ns = 0
+        sum_pair_delta_ns = 0
         for _ in range(completed_units):
             a = time.monotonic_ns()
             b = time.monotonic_ns()
-            checksum ^= b - a
+            if b < a:
+                non_monotonic_count += 1
+                delta = 0
+            else:
+                delta = b - a
+            if delta == 0:
+                zero_delta_count += 1
+            else:
+                min_positive_delta_ns = (
+                    delta if min_positive_delta_ns is None else min(min_positive_delta_ns, delta)
+                )
+                max_delta_ns = max(max_delta_ns, delta)
+            sum_pair_delta_ns += delta
+            checksum ^= delta
         end = time.monotonic_ns()
         if sample_index < warmups:
             continue
@@ -57,8 +76,13 @@ def run_timer_overhead(samples: int, warmups: int, completed_units: int) -> int:
                 "sample_index": sample_index - warmups,
                 "elapsed_ns": max(1, end - start),
                 "completed_units": completed_units,
-                "checksum": f"timer:{checksum}",
-                "timer": "python.time.monotonic_ns",
+                "checksum": f"timer:{checksum}:{non_monotonic_count}:{zero_delta_count}",
+                "timer": timer,
+                "non_monotonic_count": non_monotonic_count,
+                "zero_delta_count": zero_delta_count,
+                "min_positive_delta_ns": min_positive_delta_ns or 0,
+                "max_delta_ns": max_delta_ns,
+                "sum_pair_delta_ns": sum_pair_delta_ns,
             }
         )
     return 0

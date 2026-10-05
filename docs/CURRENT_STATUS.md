@@ -1,7 +1,7 @@
 # Current status
 
-**Status date:** 2026-10-04  
-**Release:** `0.1.0a0`  
+**Status date:** 2026-10-05
+**Release:** `0.2.0a0`
 **Publication posture:** instrument-development alpha; no public CPU ranking claim
 
 ## Working end-to-end
@@ -55,11 +55,12 @@ cpubench study report
 
 ### Python control provider
 
-- monotonic timer-read overhead;
+- monotonic Python timer read-pair overhead with delta statistics;
 - known-duration sleep interval.
 
 ### Native C11 provider
 
+- native monotonic timer read-pair overhead and effective-resolution control;
 - dependent randomized pointer chase;
 - one/two/four/eight/sixteen disjoint chain memory-level-parallelism sweep;
 - deterministic input generation;
@@ -83,7 +84,7 @@ The C11 provider currently uses `CLOCK_MONOTONIC_RAW`/`CLOCK_MONOTONIC` on POSIX
 - CPU and memory summary;
 - Linux core/package/sibling topology;
 - Linux cache summary;
-- monotonic timer capability;
+- nominal timer availability, with qualification deferred to campaign controls;
 - process-affinity capability;
 - Linux PMU policy observation;
 - thermal/battery data where psutil exposes it;
@@ -104,6 +105,7 @@ The C11 provider currently uses `CLOCK_MONOTONIC_RAW`/`CLOCK_MONOTONIC` on POSIX
 ## Implemented analysis
 
 - named validity view input;
+- campaign-derived timer qualification and minimum sample duration;
 - separate work, measurement, and comparability outcomes;
 - median of valid attempt medians;
 - deterministic 95% percentile-bootstrap intervals over independent attempt medians;
@@ -137,7 +139,7 @@ hardware/software stacks.
 - Windows processor-group and CPU Set authority is incomplete.
 - macOS remains scheduler-open.
 - PMU, cycles, energy, NUMA placement, and sustained thermal traces are not yet qualified.
-- Bootstrap coverage has not yet been calibrated against a publication-grade hardware campaign.
+- Timer overhead ratios and minimum-duration policy have not yet been calibrated against a publication-grade hardware campaign.
 - The SQLite anchor is implemented but has not yet completed cross-hardware external-validity study.
 - No topology/coherence pack is implemented.
 - No private challenge-pack vault exists.

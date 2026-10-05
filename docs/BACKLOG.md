@@ -8,8 +8,8 @@ Each issue is an implementation transaction. Programme completion remains govern
 
 ## 1. Intake: freeze the unresolved source corpus
 
-**Role:** contract authority / intake  
-**Priority:** P0  
+**Role:** contract authority / intake
+**Priority:** P0
 **Blocks:** corpus migration, SPEC adapter, public provenance review
 
 ### Goal
@@ -56,8 +56,8 @@ Replace every unresolved source placeholder with an exact, rights-classified art
 
 ## 2. Evidence: fault-injected recovery and immutable query index
 
-**Role:** implementation slice  
-**Priority:** P0  
+**Role:** implementation slice
+**Priority:** P0
 **Depends on:** existing filesystem evidence store
 
 ### Goal
@@ -89,7 +89,7 @@ Prove that interrupted campaigns remain inspectable and resumable at every state
 
 ## 3. Publication: compile rights-safe public campaign bundles
 
-**Role:** implementation slice / publication boundary  
+**Role:** implementation slice / publication boundary
 **Priority:** P0
 
 ### Goal
@@ -125,7 +125,8 @@ Create a deterministic projection from a private finalized campaign to a public 
 
 ## 4. Instrument: qualify timer overhead and sample-duration policy
 
-**Role:** benchmark family / instrument qualification  
+**Status:** implemented in `0.2.0a0`; hardware-matrix calibration remains under Instrument Validation 0.1
+**Role:** benchmark family / instrument qualification
 **Priority:** P0
 
 ### Goal
@@ -159,7 +160,7 @@ Replace nominal timer availability with measured qualification of resolution, ov
 
 ## 5. Instrument: prove placement and residency
 
-**Role:** platform implementation slice  
+**Role:** platform implementation slice
 **Priority:** P0
 
 ### Goal
@@ -188,7 +189,7 @@ Distinguish requested placement, accepted affinity state, and observed execution
 
 ## 6. Platform: complete Windows topology and CPU Set authority
 
-**Role:** platform implementation slice  
+**Role:** platform implementation slice
 **Priority:** P0
 
 ### Goal
@@ -214,7 +215,7 @@ Represent Windows systems correctly beyond a single 64-bit process affinity mask
 
 ## 7. Platform: enrich macOS topology without false affinity claims
 
-**Role:** platform implementation slice  
+**Role:** platform implementation slice
 **Priority:** P0
 
 ### Goal
@@ -240,7 +241,7 @@ Capture useful Apple Silicon topology and operating evidence while preserving th
 
 ## 8. Validation: implement native locality/MLP mutants
 
-**Role:** benchmark family / instrument validation  
+**Role:** benchmark family / instrument validation
 **Priority:** P0
 
 ### Goal
@@ -270,7 +271,7 @@ Make the measurement system reject intentionally broken implementations of the f
 
 ## 9. Integrity: execute blinded challenge variants
 
-**Role:** benchmark family / integrity plane  
+**Role:** benchmark family / integrity plane
 **Priority:** P0
 
 ### Goal
@@ -304,8 +305,8 @@ Move from the honest/gamed detector self-test to campaign-integrated challenge e
 
 ## 10. Release: Instrument Validation 0.1
 
-**Role:** release transaction  
-**Priority:** P0  
+**Role:** release transaction
+**Priority:** P0
 **Depends on:** issues 1–9 as applicable
 
 ### Goal
@@ -345,7 +346,7 @@ Use materially different systems where available: modern AMD chiplet/cache, olde
 
 ## 11. Application: irregular-memory anchor
 
-**Role:** benchmark family / application anchor  
+**Role:** benchmark family / application anchor
 **Priority:** P1
 
 ### Goal
@@ -379,7 +380,7 @@ dependent locality + MLP
 
 ## 12. Workflow: common review spine and diagnostic branches
 
-**Role:** programme / reviewer workflow  
+**Role:** programme / reviewer workflow
 **Priority:** P1
 
 ### Goal
@@ -406,7 +407,7 @@ Compile a review campaign graph with one common comparison denominator and condi
 
 ## 13. Topology: atomic handoff latency
 
-**Role:** benchmark family  
+**Role:** benchmark family
 **Priority:** P1
 
 ### Goal
@@ -433,7 +434,7 @@ Measure defined atomic token transfer across topology relationships without timi
 
 ## 14. Coherence: false-sharing matched family
 
-**Role:** benchmark family  
+**Role:** benchmark family
 **Priority:** P1
 
 ### Goal
@@ -460,7 +461,7 @@ Measure the penalty from logically independent updates sharing a cache line.
 
 ## 15. SPEC: restricted official-tool adapter
 
-**Role:** private adapter  
+**Role:** private adapter
 **Priority:** P1
 
 ### Goal
@@ -490,8 +491,8 @@ Integrate the exact licensed SPEC installation without copying restricted materi
 
 ## 16. Migration: classify Ian's 2022 and generated suites
 
-**Role:** corpus migration programme  
-**Priority:** P1  
+**Role:** corpus migration programme
+**Priority:** P1
 **Depends on:** source intake, instrument validation
 
 ### Goal

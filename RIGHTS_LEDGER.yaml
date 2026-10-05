@@ -1,5 +1,5 @@
 schema_version: 1
-status_date: 2026-10-04
+status_date: 2026-10-05
 policy: >-
   Execution, local retention, vendor sharing, Git commit, and public publication
   are separate permissions. Unknown rights mean non-public.

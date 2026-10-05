@@ -9,7 +9,7 @@ The Python package and provider protocol version.
 Example:
 
 ```text
-cpubench 0.1.0a0
+cpubench 0.2.0a0
 provider protocol 1
 ```
 
@@ -118,4 +118,4 @@ A public performance release requires:
 - limitations and claim boundary;
 - reproducible report.
 
-`0.1.0a0` is an instrument-development alpha and does not satisfy this gate.
+`0.2.0a0` is an instrument-development alpha and does not satisfy this gate.

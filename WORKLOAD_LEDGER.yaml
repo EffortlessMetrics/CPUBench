@@ -1,5 +1,5 @@
 schema_version: 1
-status_date: 2026-10-04
+status_date: 2026-10-05
 
 workloads:
   - workload_id: controls.timer_overhead
@@ -15,6 +15,25 @@ workloads:
     claim_boundary:
       - not an instruction-latency benchmark
       - not proof of cross-platform timer equivalence
+
+
+  - workload_id: controls.native_timer_overhead
+    family_version: 0.1.0
+    source: first_party
+    original_purpose: qualify native interval-timer read-pair overhead, resolution, and monotonicity
+    timed_region: repeated paired native monotonic timer reads
+    correctness:
+      - exact completed observation count
+      - retained positive-delta statistics
+      - no non-monotonic observations
+    primary_metric: ns_per_unit
+    release_role: calibration
+    implementation: native-c11-v1
+    status: implemented_alpha
+    claim_boundary:
+      - not an instruction-latency benchmark
+      - not proof of cross-core counter synchronization
+      - authority is limited to the named timer and execution stack
 
   - workload_id: controls.sleep_interval
     family_version: 0.1.0
@@ -46,13 +65,12 @@ workloads:
       - exact completed load count
     primary_metric: ns_per_load
     release_role: public_reference_candidate
-    implementation: native-c11-v0
+    implementation: native-c11-v1
     status: implemented_unqualified
     next_evidence:
       - native mutants
       - cross-tool checks
       - multi-machine curves
-      - minimum-duration qualification
 
   - workload_id: memory.memory_level_parallelism
     family_version: 0.1.0
@@ -70,7 +88,7 @@ workloads:
       - loads_per_second
       - ns_per_load
     release_role: public_reference_candidate
-    implementation: native-c11-v0
+    implementation: native-c11-v1
     status: implemented_unqualified
     next_evidence:
       - shared-dependency mutant

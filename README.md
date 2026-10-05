@@ -23,7 +23,7 @@ The Python control plane owns authoring, planning, orchestration, evidence, vali
 
 ## Current status
 
-`0.1.0a0` is a runnable instrument-development alpha.
+`0.2.0a0` is a runnable instrument-development alpha.
 
 Implemented:
 
@@ -31,7 +31,8 @@ Implemented:
 - immutable campaign plans and filesystem evidence bundles;
 - explicit installed-instrument and compiled-pack release identities;
 - subprocess provider protocol (`describe`, `self-test`, `run`);
-- calibration controls for monotonic timing and known-duration intervals;
+- campaign-qualified Python and native interval timers with measured overhead, effective resolution, and minimum sample duration;
+- calibration controls for known-duration intervals;
 - native dependent-load-latency and memory-level-parallelism families;
 - a scoped warm in-memory SQLite indexed-lookup application anchor;
 - obligation-level work and measurement validation;
@@ -288,6 +289,7 @@ cpubench campaign all examples/quickstart.yaml --fresh
 - [Integrity and challenge packs](docs/INTEGRITY.md)
 - [Platform authority](docs/PLATFORMS.md)
 - [Statistics](docs/STATISTICS.md)
+- [Timer qualification](docs/TIMERS.md)
 - [SPEC boundary](docs/SPEC.md)
 - [Trust and security](docs/TRUST.md)
 - [Release model](docs/RELEASES.md)

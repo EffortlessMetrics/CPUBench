@@ -22,9 +22,9 @@
 
 ## Milestone 2 — Instrument qualification
 
-- qualify native interval timers per platform;
-- calibrate minimum sample duration from observed overhead;
-- validate warm-up and cold-start policies;
+- [x] qualify Python and native interval timers inside campaigns;
+- [x] derive minimum sample duration from observed overhead and effective resolution;
+- validate profile ratios, warm-up policy, and cold-start policy across the hardware matrix;
 - add per-attempt residency evidence;
 - implement Windows processor groups / CPU Sets;
 - enrich macOS topology and core-class metadata;

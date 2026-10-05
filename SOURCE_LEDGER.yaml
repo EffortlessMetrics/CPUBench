@@ -1,5 +1,5 @@
 schema_version: 1
-status_date: 2026-10-04
+status_date: 2026-10-05
 purpose: >-
   Preserve exact source identity, role, and disposition before donor code or
   historical workloads enter a frozen CPUBench pack.

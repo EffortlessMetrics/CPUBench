@@ -83,7 +83,7 @@ def ensure_native_provider(build_root: Path, policy: ImplementationPolicy = Impl
             if binary.exists():
                 receipt = BuildReceipt(
                     provider_id="native-c11",
-                    implementation_id="native-c11-v0",
+                    implementation_id="native-c11-v1",
                     source_digest=source_digest,
                     compiler=_compiler_identity(build_dir),
                     commands=[],
@@ -123,7 +123,7 @@ def ensure_native_provider(build_root: Path, policy: ImplementationPolicy = Impl
         compiler = _compiler_identity(build_dir)
         receipt = BuildReceipt(
             provider_id="native-c11",
-            implementation_id="native-c11-v0",
+            implementation_id="native-c11-v1",
             source_digest=source_digest,
             compiler=compiler,
             commands=commands,

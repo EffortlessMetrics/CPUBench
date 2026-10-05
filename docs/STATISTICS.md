@@ -39,6 +39,16 @@ deterministic 95% percentile-bootstrap interval over attempt estimates
 
 Raw samples remain in the campaign bundle.
 
+## Timer-qualified sample duration
+
+Before statistical aggregation, each elapsed-time sample must satisfy the minimum duration derived from the matching campaign timer control:
+
+```text
+minimum duration = max(observed read-pair overhead, effective resolution) × profile ratio
+```
+
+A sample below that threshold is an instrument failure for the selected view, not a valid noisy sample. The control evidence and exact threshold remain in the validation bundle. See [Timer qualification](TIMERS.md).
+
 ## Why attempt medians
 
 The median provides a robust first alpha summary without deleting evidence or choosing a best run. It is not a universal answer to benchmark noise.
