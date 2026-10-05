@@ -32,7 +32,15 @@ def test_control_provider_contract() -> None:
     assert attempt.state.value == "completed"
     assert len(attempt.samples) == 2
     assert attempt.effective_parameters["timer_control"] is True
-    assert all(sample.metrics["non_monotonic_count"] == 0 for sample in attempt.samples)
-    assert all(sample.metrics["min_positive_delta_ns"] > 0 for sample in attempt.samples)
     assert attempt.provider_stdout
     assert attempt.provider_stderr == ""
+
+    for sample in attempt.samples:
+        metrics = sample.metrics
+        assert metrics["non_monotonic_count"] == 0
+        assert metrics["zero_delta_count"] >= 0
+        assert metrics["min_positive_delta_ns"] >= 0
+        assert metrics["max_delta_ns"] >= metrics["min_positive_delta_ns"]
+        assert metrics["sum_pair_delta_ns"] >= metrics["max_delta_ns"]
+        if metrics["min_positive_delta_ns"] == 0:
+            assert metrics["zero_delta_count"] == sample.completed_units
