@@ -30,6 +30,20 @@ def _human_bytes(value: int | float | None) -> str:
     return f"{size:.1f} TiB"
 
 
+
+
+def _human_ns(value: int | float | None) -> str:
+    if value is None:
+        return "—"
+    nanoseconds = float(value)
+    if nanoseconds < 1_000:
+        return f"{nanoseconds:.2f} ns"
+    if nanoseconds < 1_000_000:
+        return f"{nanoseconds / 1_000:.2f} µs"
+    if nanoseconds < 1_000_000_000:
+        return f"{nanoseconds / 1_000_000:.2f} ms"
+    return f"{nanoseconds / 1_000_000_000:.2f} s"
+
 def _point_sort_key(point: PointEstimate) -> tuple[float, str]:
     parameters = point.parameters
     if "working_set_bytes" in parameters and point.family_id.endswith("dependent_load_latency"):
@@ -144,6 +158,22 @@ def generate_report(campaign_dir: Path) -> Path:
         for family_id, points in grouped.items()
     )
 
+    timer_qualification_rows = "".join(
+        "<tr>"
+        f"<td><code>{html.escape(timer)}</code></td>"
+        f"<td>{html.escape(qualification.state.value)}</td>"
+        f"<td>{_human_ns(qualification.read_overhead_ns)}</td>"
+        f"<td>{_human_ns(qualification.effective_resolution_ns)}</td>"
+        f"<td>{_human_ns(qualification.minimum_sample_duration_ns)}</td>"
+        f"<td>{qualification.observations:,}</td>"
+        f"<td>{qualification.non_monotonic_observations:,}</td>"
+        f"<td>{len(qualification.failed_control_attempt_ids):,}</td>"
+        f"<td>{len(qualification.invalid_control_attempt_ids):,}</td>"
+        f"<td>{html.escape(qualification.reason_code)}</td>"
+        "</tr>"
+        for timer, qualification in sorted(validation.timer_qualifications.items())
+    )
+
     capability_rows = "".join(
         "<tr>"
         f"<td><code>{html.escape(name)}</code></td>"
@@ -211,6 +241,10 @@ footer {{ margin-top:34px; color:#5f5953; font-size:.9rem; }}
 <tbody>{''.join(table_rows)}</tbody></table>
 </section>
 <section>
+<h2>Timer qualification</h2>
+<table><thead><tr><th>Timer</th><th>State</th><th>Read overhead</th><th>Effective resolution</th><th>Minimum sample</th><th>Observations</th><th>Non-monotonic</th><th>Failed controls</th><th>Invalid controls</th><th>Reason</th></tr></thead><tbody>{timer_qualification_rows}</tbody></table>
+</section>
+<section>
 <h2>Measurement authority</h2>
 <table><thead><tr><th>Capability</th><th>State</th><th>Authority</th><th>Detail</th></tr></thead><tbody>{capability_rows}</tbody></table>
 </section>
@@ -256,6 +290,24 @@ footer {{ margin-top:34px; color:#5f5953; font-size:.9rem; }}
     markdown_lines.extend(
         [
             "",
+            "## Timer qualification",
+            "",
+            "| Timer | State | Read overhead | Effective resolution | Minimum sample | Observations | Non-monotonic | Failed controls | Invalid controls | Reason |",
+            "|---|---|---:|---:|---:|---:|---:|---:|---:|---|",
+        ]
+    )
+    for timer, qualification in sorted(validation.timer_qualifications.items()):
+        markdown_lines.append(
+            f"| `{timer}` | `{qualification.state.value}` | {_human_ns(qualification.read_overhead_ns)} | "
+            f"{_human_ns(qualification.effective_resolution_ns)} | "
+            f"{_human_ns(qualification.minimum_sample_duration_ns)} | "
+            f"{qualification.observations} | {qualification.non_monotonic_observations} | "
+            f"{len(qualification.failed_control_attempt_ids)} | "
+            f"{len(qualification.invalid_control_attempt_ids)} | `{qualification.reason_code}` |"
+        )
+    markdown_lines.extend(
+        [
+            "",
             "## Claim boundary",
             "",
             "This campaign does not produce a universal CPU score. Family-level evidence remains canonical.",
@@ -269,6 +321,10 @@ footer {{ margin-top:34px; color:#5f5953; font-size:.9rem; }}
             "machine_receipt_id": machine.semantic_id,
             "validation_bundle_id": validation.semantic_id,
             "analysis_bundle_id": analysis.semantic_id,
+            "timer_qualifications": {
+                timer: qualification.model_dump(mode="json", exclude_none=True)
+                for timer, qualification in sorted(validation.timer_qualifications.items())
+            },
             "points": [point.model_dump(mode="json") for point in analysis.points],
         },
     )

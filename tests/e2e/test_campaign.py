@@ -6,7 +6,7 @@ import yaml
 from cpubench.analysis import analyze_campaign
 from cpubench.campaign import execute_campaign, finalize_campaign, persist_runtime, prepare_runtime
 from cpubench.evidence import CampaignStore
-from cpubench.models import AttemptRecord, InstrumentRelease, PackRelease, RunPlan
+from cpubench.models import AttemptRecord, CapabilityState, InstrumentRelease, PackRelease, ProfileSpec, RunPlan
 from cpubench.report import generate_report
 from cpubench.validation import validate_campaign
 
@@ -53,10 +53,35 @@ def test_control_only_campaign_end_to_end(tmp_path: Path) -> None:
     assert resumed_counts["completed"] == len(runtime.plan.items)
     validation = validate_campaign(runtime.store.root)
     assert validation.coverage["completed"] == len(runtime.plan.items)
+    assert "python.time.monotonic_ns" in validation.timer_qualifications
+    assert any(
+        timer in validation.timer_qualifications
+        for timer in {"CLOCK_MONOTONIC_RAW", "CLOCK_MONOTONIC", "QueryPerformanceCounter"}
+    )
+    for qualification in validation.timer_qualifications.values():
+        assert qualification.control_attempt_ids
+        if qualification.state == CapabilityState.QUALIFIED:
+            assert qualification.read_overhead_ns is not None
+            assert qualification.effective_resolution_ns is not None
+            assert qualification.minimum_sample_duration_ns is not None
+        elif qualification.state == CapabilityState.AVAILABLE_UNQUALIFIED:
+            assert qualification.reason_code in {
+                "timer_positive_resolution_not_observed",
+                "timer_read_overhead_not_observed",
+            }
+        elif qualification.state == CapabilityState.FAILED:
+            assert (
+                qualification.non_monotonic_observations > 0
+                or qualification.failed_control_attempt_ids
+                or qualification.invalid_control_attempt_ids
+            )
+        else:
+            pytest.fail(f"unexpected timer qualification state: {qualification.state}")
     analysis = analyze_campaign(runtime.store.root)
     assert analysis.points
     report = generate_report(runtime.store.root)
     assert report.exists()
+    assert "Timer qualification" in report.read_text(encoding="utf-8")
     attempt_path = next((runtime.store.root / "attempts").glob("*/attempt.json"))
     stored_attempt = AttemptRecord.model_validate_json(attempt_path.read_text(encoding="utf-8"))
     recomputed = stored_attempt.model_copy(update={"semantic_id": None}).with_semantic_id()
@@ -211,3 +236,60 @@ def test_finalization_rejects_attempt_that_differs_from_plan(tmp_path: Path) -> 
 
     with pytest.raises(RuntimeError, match="attempt record differs from frozen plan"):
         finalize_campaign(runtime.store.root)
+
+
+def _write_profile_policy_campaign(tmp_path: Path, campaign_id: str) -> Path:
+    campaign_file = tmp_path / f"{campaign_id}.yaml"
+    campaign_file.write_text(
+        yaml.safe_dump(
+            {
+                "schema_version": 1,
+                "artifact_kind": "campaign_spec",
+                "campaign_id": campaign_id,
+                "title": "Profile policy binding",
+                "description": "Reject changed validation policy.",
+                "profile": "profiles/smoke.yaml",
+                "packs": [{"pack": "packs/controls/pack.yaml"}],
+                "operating_mode": "characterization",
+                "implementation_policy": "native",
+                "placement": "scheduler_open",
+                "output_root": str(tmp_path / "runs"),
+                "schedule_seed": 1,
+                "public_claims_enabled": False,
+            },
+            sort_keys=False,
+        ),
+        encoding="utf-8",
+    )
+    return campaign_file
+
+
+def test_validation_rejects_profile_that_differs_from_frozen_plan(tmp_path: Path) -> None:
+    runtime = prepare_runtime(_write_profile_policy_campaign(tmp_path, "profile-binding"), resume=True)
+    persist_runtime(runtime)
+    profile_path = runtime.store.root / "profile.json"
+    profile = ProfileSpec.model_validate_json(profile_path.read_text(encoding="utf-8"))
+    changed = profile.model_copy(
+        update={
+            "minimum_timer_overhead_ratio": profile.minimum_timer_overhead_ratio + 10.0,
+            "semantic_id": None,
+        }
+    ).with_semantic_id()
+    profile_path.write_text(changed.model_dump_json(exclude_none=True, indent=2) + "\n", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="profile does not match the frozen run plan"):
+        validate_campaign(runtime.store.root)
+
+
+def test_validation_rejects_profile_with_stale_semantic_identity(tmp_path: Path) -> None:
+    runtime = prepare_runtime(_write_profile_policy_campaign(tmp_path, "profile-tamper"), resume=True)
+    persist_runtime(runtime)
+    profile_path = runtime.store.root / "profile.json"
+    profile = ProfileSpec.model_validate_json(profile_path.read_text(encoding="utf-8"))
+    stale = profile.model_copy(
+        update={"minimum_timer_overhead_ratio": profile.minimum_timer_overhead_ratio + 10.0}
+    )
+    profile_path.write_text(stale.model_dump_json(exclude_none=True, indent=2) + "\n", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="profile semantic identity"):
+        validate_campaign(runtime.store.root)

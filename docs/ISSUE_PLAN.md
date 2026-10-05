@@ -27,7 +27,7 @@ Completed foundations are marked `[x]`; they remain subject to validation and re
 4. [ ] **Evidence: add fault-injected crash recovery and immutable derived index**
 5. [x] **Privacy: hash host identity by default**
 6. [ ] **Publication: compile explicit rights-safe public projections**
-7. [ ] **Instrument: qualify native timers and minimum sample duration**
+7. [x] **Instrument: qualify Python/native timers and minimum sample duration**
 8. [~] **Instrument: request/read back process placement; add start/end residency proof**
 9. [ ] **Platform: implement Windows processor-group and CPU Set evidence**
 10. [~] **Platform: state macOS hard-affinity limits; enrich topology evidence**

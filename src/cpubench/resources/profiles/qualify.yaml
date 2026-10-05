@@ -6,5 +6,6 @@ attempts_per_point: 5
 samples_per_attempt: 8
 warmup_samples: 2
 unit_scale: 0.25
+minimum_timer_overhead_ratio: 1000
 timeout_seconds: 120
 randomized_interleaving: true

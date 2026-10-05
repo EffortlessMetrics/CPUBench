@@ -34,6 +34,17 @@
       "title": "AttemptValidation",
       "type": "object"
     },
+    "CapabilityState": {
+      "enum": [
+        "qualified",
+        "available_unqualified",
+        "unsupported",
+        "failed",
+        "unknown"
+      ],
+      "title": "CapabilityState",
+      "type": "string"
+    },
     "ObligationResult": {
       "additionalProperties": false,
       "properties": {
@@ -67,6 +78,127 @@
         "reason_code"
       ],
       "title": "ObligationResult",
+      "type": "object"
+    },
+    "TimerQualification": {
+      "additionalProperties": false,
+      "properties": {
+        "control_attempt_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Control Attempt Ids",
+          "type": "array"
+        },
+        "detail": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Detail"
+        },
+        "effective_resolution_ns": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Effective Resolution Ns"
+        },
+        "failed_control_attempt_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Failed Control Attempt Ids",
+          "type": "array"
+        },
+        "invalid_control_attempt_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Invalid Control Attempt Ids",
+          "type": "array"
+        },
+        "minimum_sample_duration_ns": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Minimum Sample Duration Ns"
+        },
+        "non_monotonic_observations": {
+          "minimum": 0,
+          "title": "Non Monotonic Observations",
+          "type": "integer"
+        },
+        "observations": {
+          "minimum": 0,
+          "title": "Observations",
+          "type": "integer"
+        },
+        "overhead_ratio": {
+          "maximum": 1000000.0,
+          "minimum": 10.0,
+          "title": "Overhead Ratio",
+          "type": "number"
+        },
+        "read_overhead_ns": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Read Overhead Ns"
+        },
+        "reason_code": {
+          "title": "Reason Code",
+          "type": "string"
+        },
+        "state": {
+          "$ref": "#/$defs/CapabilityState"
+        },
+        "timer": {
+          "title": "Timer",
+          "type": "string"
+        },
+        "zero_delta_observations": {
+          "minimum": 0,
+          "title": "Zero Delta Observations",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "timer",
+        "state",
+        "control_attempt_ids",
+        "observations",
+        "non_monotonic_observations",
+        "zero_delta_observations",
+        "overhead_ratio",
+        "reason_code"
+      ],
+      "title": "TimerQualification",
       "type": "object"
     },
     "ValidityOutcome": {
@@ -139,6 +271,13 @@
       ],
       "default": null,
       "title": "Semantic Id"
+    },
+    "timer_qualifications": {
+      "additionalProperties": {
+        "$ref": "#/$defs/TimerQualification"
+      },
+      "title": "Timer Qualifications",
+      "type": "object"
     },
     "validity_view": {
       "title": "Validity View",

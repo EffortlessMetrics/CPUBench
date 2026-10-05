@@ -7,7 +7,7 @@ import platform
 import sys
 import time
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable, cast
 
 import psutil
 
@@ -64,14 +64,22 @@ def _cache_summary() -> list[dict[str, Any]]:
 
 def _timer_capability() -> CapabilityEvidence:
     info = time.get_clock_info("monotonic")
-    state = CapabilityState.QUALIFIED if info.monotonic and not info.adjustable else CapabilityState.AVAILABLE_UNQUALIFIED
+    if not info.monotonic:
+        state = CapabilityState.FAILED
+        detail = "The host Python monotonic clock reports that it is not monotonic."
+    else:
+        state = CapabilityState.AVAILABLE_UNQUALIFIED
+        detail = (
+            "A monotonic interval clock is exposed by the host Python runtime. "
+            "Campaign controls must still measure read overhead and effective resolution."
+        )
     return CapabilityEvidence(
         state=state,
         authority="python.time.monotonic_ns",
-        detail="Monotonic interval clock exposed by the host Python runtime.",
+        detail=detail,
         evidence={
             "implementation": info.implementation,
-            "resolution_seconds": info.resolution,
+            "nominal_resolution_seconds": info.resolution,
             "monotonic": info.monotonic,
             "adjustable": info.adjustable,
         },
@@ -91,11 +99,12 @@ def _native_timer_capability() -> CapabilityEvidence:
             detail="The bundled native provider timer has not been qualified on this platform.",
         )
     return CapabilityEvidence(
-        state=CapabilityState.QUALIFIED,
+        state=CapabilityState.AVAILABLE_UNQUALIFIED,
         authority=authority,
         detail=(
-            "Qualified for monotonic elapsed-interval use in the portable_elapsed view. "
-            "Mechanism views still require separate overhead, resolution, and cross-core qualification."
+            "A platform monotonic interval timer is available to the bundled native provider. "
+            "Campaign controls must measure read overhead, effective resolution, and monotonicity "
+            "before performance samples enter portable_elapsed views."
         ),
     )
 
@@ -159,15 +168,22 @@ def _pmu_capability() -> CapabilityEvidence:
     )
 
 
+def _read_temperatures() -> Any:
+    reader = cast(Callable[..., Any] | None, getattr(psutil, "sensors_temperatures", None))
+    if reader is None:
+        return None
+    return reader(fahrenheit=False)
+
+
 def _sensor_capability(kind: str) -> CapabilityEvidence:
     try:
         if kind == "thermal":
-            data = psutil.sensors_temperatures(fahrenheit=False)
+            available = bool(_read_temperatures())
         else:
-            data = psutil.sensors_battery()
+            available = psutil.sensors_battery() is not None
     except (AttributeError, OSError, NotImplementedError) as exc:
         return CapabilityEvidence(state=CapabilityState.UNSUPPORTED, authority="psutil", detail=str(exc))
-    if not data:
+    if not available:
         return CapabilityEvidence(state=CapabilityState.UNSUPPORTED, authority="psutil", detail=f"no {kind} data")
     return CapabilityEvidence(
         state=CapabilityState.AVAILABLE_UNQUALIFIED,
@@ -183,20 +199,24 @@ def _serializable(value: Any) -> Any:
 def _sensor_snapshot(kind: str) -> dict[str, Any]:
     try:
         if kind == "thermal":
-            data = psutil.sensors_temperatures(fahrenheit=False)
-        else:
-            data = psutil.sensors_battery()
+            thermal_data = _read_temperatures()
+            if not thermal_data:
+                return {"available": False}
+            return {"available": True, "data": _serializable(thermal_data)}
+        battery_data = psutil.sensors_battery()
     except (AttributeError, OSError, NotImplementedError) as exc:
         return {"available": False, "error": str(exc)}
-    if not data:
+    if battery_data is None:
         return {"available": False}
-    return {"available": True, "data": _serializable(data)}
+    return {"available": True, "data": _serializable(battery_data)}
 
 
 def collect_machine_receipt() -> MachineReceipt:
     system_name = platform.system()
     cpuinfo = _linux_cpuinfo() if system_name == "Linux" else {}
-    topology = _linux_topology() if system_name == "Linux" else {"logical_cpus": psutil.cpu_count(logical=True)}
+    topology: dict[str, Any] = (
+        _linux_topology() if system_name == "Linux" else {"logical_cpus": psutil.cpu_count(logical=True)}
+    )
     if system_name == "Linux":
         topology["caches"] = _cache_summary()
 
@@ -275,10 +295,14 @@ def collect_run_environment_receipt(campaign_id: str, machine: MachineReceipt) -
     except (AttributeError, OSError, NotImplementedError):
         pass
 
-    try:
-        load_average: list[float] = list(os.getloadavg())
-    except (AttributeError, OSError):
-        load_average = []
+    getloadavg = cast(Callable[[], tuple[float, float, float]] | None, getattr(os, "getloadavg", None))
+    if getloadavg is None:
+        load_average: list[float] = []
+    else:
+        try:
+            load_average = list(getloadavg())
+        except OSError:
+            load_average = []
 
     vm = psutil.virtual_memory()
     known_unknowns: list[str] = []

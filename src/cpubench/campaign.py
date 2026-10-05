@@ -134,6 +134,8 @@ def prepare_runtime(
         profile_path = output_dir / "profile.json"
         if profile_path.exists():
             persisted_profile = ProfileSpec.model_validate_json(profile_path.read_text(encoding="utf-8"))
+            if not persisted_profile.semantic_identity_is_valid():
+                raise RuntimeError("persisted profile semantic identity does not match its content")
             if persisted_profile.semantic_id != loaded.profile.semantic_id:
                 raise RuntimeError("profile changed; start a new campaign instead of resuming")
         for release in loaded.pack_releases:
@@ -453,6 +455,11 @@ def finalize_campaign(campaign_dir: Path) -> dict[str, Any]:
         raise RuntimeError(f"campaign cannot be finalized; required artifacts are missing: {missing_required}")
 
     plan = RunPlan.model_validate_json((root / "run-plan.json").read_text(encoding="utf-8"))
+    profile = ProfileSpec.model_validate_json((root / "profile.json").read_text(encoding="utf-8"))
+    if not profile.semantic_identity_is_valid():
+        raise RuntimeError("profile semantic identity does not match its persisted content")
+    if profile.semantic_id != plan.profile_id:
+        raise RuntimeError("profile does not match the frozen run plan")
     expected_ids = {item.attempt_id for item in plan.items}
     attempt_paths = list((root / "attempts").glob("*/attempt.json"))
     attempts = [AttemptRecord.model_validate_json(path.read_text(encoding="utf-8")) for path in attempt_paths]

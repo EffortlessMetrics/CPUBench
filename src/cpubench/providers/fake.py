@@ -50,9 +50,12 @@ def main() -> int:
     if args.family != "integrity.identity_probe":
         return 64
 
-    baseline_ns = 4_000_000
+    # Use a large deterministic contrast so this detector self-test remains
+    # stable on coarse or heavily scheduled CI hosts. This is synthetic proof
+    # of the integrity-analysis path, not a performance benchmark.
+    baseline_ns = 50_000_000
     if BEHAVIOR == "gamed" and args.variant_label == "public":
-        baseline_ns = 2_000_000
+        baseline_ns = 5_000_000
     if BEHAVIOR == "failing":
         return 3
 

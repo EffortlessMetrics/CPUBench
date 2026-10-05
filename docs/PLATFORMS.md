@@ -49,7 +49,7 @@ telemetry, and end-state comparison remain separate future evidence surfaces.
 
 Current alpha:
 
-- Python monotonic timer qualification;
+- Python and native interval timers reported as available until campaign controls qualify overhead, resolution, and monotonicity;
 - bundled provider uses `CLOCK_MONOTONIC_RAW` where exposed, otherwise `CLOCK_MONOTONIC`;
 - process affinity request/readback through psutil;
 - sysfs logical/core/package/sibling topology;
@@ -72,8 +72,8 @@ Planned:
 
 Current alpha:
 
-- Python monotonic authority;
-- native provider uses `QueryPerformanceCounter`;
+- campaign-qualified Python monotonic timing;
+- native provider uses and campaign-qualifies `QueryPerformanceCounter`;
 - psutil affinity where available;
 - basic processor and memory inventory.
 
@@ -91,8 +91,8 @@ A single process affinity mask is not a complete Windows topology model.
 
 Current alpha:
 
-- Python monotonic authority;
-- native provider uses a monotonic POSIX clock;
+- campaign-qualified Python monotonic timing;
+- native provider uses and campaign-qualifies a monotonic POSIX clock;
 - scheduler-open product/portable measurements;
 - explicit statement that hard affinity is not claimed.
 

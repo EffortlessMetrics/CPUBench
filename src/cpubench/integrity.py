@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import sys
 import statistics
+import sys
 from pathlib import Path
 from typing import Any, Literal
 
@@ -72,7 +72,7 @@ def run_integrity_demo(output_dir: Path, threshold: float = 1.25) -> dict[str, A
         public = _median_elapsed(provider, "public")
         alias = _median_elapsed(provider, "alias")
         ratio = max(public, alias) / min(public, alias)
-        finding: Literal["no_material_divergence", "identity_sensitive_divergence"] = (
+        finding_kind: Literal["no_material_divergence", "identity_sensitive_divergence"] = (
             "identity_sensitive_divergence" if ratio >= threshold else "no_material_divergence"
         )
         contrast = IntegrityContrast(
@@ -83,7 +83,7 @@ def run_integrity_demo(output_dir: Path, threshold: float = 1.25) -> dict[str, A
             challenge_median_ns=alias,
             ratio=ratio,
             threshold=threshold,
-            finding=finding,
+            finding=finding_kind,
         )
         results[behavior] = contrast.model_dump(mode="json")
 
@@ -151,24 +151,24 @@ def analyze_variant_set(campaign_dir: Path, variant_path: Path, output_dir: Path
         low = min(baseline.median_ns_per_unit, challenge.median_ns_per_unit)
         high = max(baseline.median_ns_per_unit, challenge.median_ns_per_unit)
         ratio = high / low
-        finding: Literal["no_material_divergence", "identity_sensitive_divergence"] = (
+        finding_kind: Literal["no_material_divergence", "identity_sensitive_divergence"] = (
             "identity_sensitive_divergence" if ratio >= variant.threshold else "no_material_divergence"
         )
-        if finding == "identity_sensitive_divergence":
+        if finding_kind == "identity_sensitive_divergence":
             if member.role == "challenge":
                 divergent = True
             elif member.role == "control":
                 control_failed = True
         contrast_payload = IntegrityContrast(
-                variant_set_id=variant.variant_set_id,
-                baseline_label=baseline_member.label,
-                challenge_label=member.label,
-                baseline_median_ns=baseline.median_ns_per_unit,
-                challenge_median_ns=challenge.median_ns_per_unit,
-                ratio=ratio,
-                threshold=variant.threshold,
-                finding=finding,
-            ).model_dump(mode="json")
+            variant_set_id=variant.variant_set_id,
+            baseline_label=baseline_member.label,
+            challenge_label=member.label,
+            baseline_median_ns=baseline.median_ns_per_unit,
+            challenge_median_ns=challenge.median_ns_per_unit,
+            ratio=ratio,
+            threshold=variant.threshold,
+            finding=finding_kind,
+        ).model_dump(mode="json")
         contrast_payload["member_role"] = member.role
         contrasts.append(contrast_payload)
 

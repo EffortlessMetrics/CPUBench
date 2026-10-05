@@ -116,6 +116,49 @@
       "title": "PointSpec",
       "type": "object"
     },
+    "ResourceBudget": {
+      "additionalProperties": false,
+      "properties": {
+        "expected_wall_seconds_per_attempt": {
+          "exclusiveMinimum": 0,
+          "title": "Expected Wall Seconds Per Attempt",
+          "type": "number"
+        },
+        "maximum_wall_seconds_per_attempt": {
+          "exclusiveMinimum": 0,
+          "title": "Maximum Wall Seconds Per Attempt",
+          "type": "number"
+        },
+        "output_bytes_per_attempt": {
+          "minimum": 0,
+          "title": "Output Bytes Per Attempt",
+          "type": "integer"
+        },
+        "peak_memory_bytes": {
+          "minimum": 0,
+          "title": "Peak Memory Bytes",
+          "type": "integer"
+        },
+        "privilege": {
+          "default": "none",
+          "enum": [
+            "none",
+            "optional",
+            "required"
+          ],
+          "title": "Privilege",
+          "type": "string"
+        }
+      },
+      "required": [
+        "expected_wall_seconds_per_attempt",
+        "maximum_wall_seconds_per_attempt",
+        "peak_memory_bytes",
+        "output_bytes_per_attempt"
+      ],
+      "title": "ResourceBudget",
+      "type": "object"
+    },
     "WorkContract": {
       "additionalProperties": false,
       "properties": {
@@ -253,6 +296,17 @@
     "question": {
       "title": "Question",
       "type": "string"
+    },
+    "resource_budget": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ResourceBudget"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
     },
     "schema_version": {
       "default": 1,

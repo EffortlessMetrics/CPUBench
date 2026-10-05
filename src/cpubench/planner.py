@@ -62,7 +62,7 @@ def compile_run_plan(
                         "form_id": family.forms[0],
                         "parameters": parameters,
                         "attempt_index": attempt_index,
-                        "profile_id": profile.profile_id,
+                        "profile_id": profile.semantic_id,
                         "machine_receipt_id": machine.semantic_id,
                         "schedule_seed": campaign.schedule_seed,
                     }
@@ -99,7 +99,7 @@ def compile_run_plan(
         campaign_spec_id=campaign.semantic_id or "",
         instrument_release_id=instrument.semantic_id or "",
         pack_release_ids={release.pack_id: release.semantic_id or "" for release in pack_releases},
-        profile_id=profile.profile_id,
+        profile_id=profile.semantic_id or "",
         machine_receipt_id=machine.semantic_id or "",
         run_environment_receipt_id=environment.semantic_id or "",
         schedule_seed=campaign.schedule_seed,

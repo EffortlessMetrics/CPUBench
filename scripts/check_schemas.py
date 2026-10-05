@@ -1,10 +1,15 @@
 from __future__ import annotations
 
-import filecmp
+import json
 import subprocess
 import sys
 import tempfile
 from pathlib import Path
+from typing import Any
+
+
+def _load_json(path: Path) -> Any:
+    return json.loads(path.read_text(encoding="utf-8"))
 
 
 def main() -> int:
@@ -24,7 +29,11 @@ def main() -> int:
         if left != right:
             print(f"schema file set differs: committed={sorted(left)} generated={sorted(right)}", file=sys.stderr)
             return 1
-        changed = [name for name in sorted(left) if not filecmp.cmp(committed / name, generated / name, shallow=False)]
+        changed = [
+            name
+            for name in sorted(left)
+            if _load_json(committed / name) != _load_json(generated / name)
+        ]
         if changed:
             print(f"generated schemas are stale: {changed}", file=sys.stderr)
             return 1

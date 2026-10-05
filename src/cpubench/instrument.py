@@ -28,18 +28,20 @@ def current_instrument_release() -> InstrumentRelease:
         instrument_id="cpubench-python",
         instrument_version=__version__,
         provider_protocol_version=1,
-        evidence_format_version=1,
+        evidence_format_version=2,
         control_plane_digest=control_plane_digest,
         components={
             "control_plane": control_plane_digest,
             "provider_protocol": "1",
-            "evidence_format": "1",
+            "evidence_format": "2",
+            "timer_qualification": "1",
             "schema_generation": "pydantic-v2",
         },
         known_limits=[
             "platform measurement authority is capability-scoped",
             "the alpha has not completed publication-grade multi-machine qualification",
             "active challenge-pack execution against real products is not yet included",
+            "timer authority is campaign-qualified but cross-core counter synchronization remains unqualified",
         ],
     ).with_semantic_id()
 

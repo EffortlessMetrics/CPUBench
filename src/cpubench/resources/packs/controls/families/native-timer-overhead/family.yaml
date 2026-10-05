@@ -1,0 +1,69 @@
+schema_version: 1
+artifact_kind: family_spec
+family_id: controls.native_timer_overhead
+family_version: 0.1.0
+title: Native monotonic timer read overhead
+surface: instrument_qualification
+question: What read overhead and effective resolution does the native provider timer exhibit on this execution stack?
+evaluated_object: native_provider_timer
+provider_id: native-c11
+work_contract:
+  useful_unit: one paired native monotonic timer observation
+  input_population: fixed iteration counts
+  required_output: retained delta statistics and an exact completed observation count
+  quality_or_tolerance: no non-monotonic observation; at least one positive delta
+resource_budget:
+  expected_wall_seconds_per_attempt: 0.25
+  maximum_wall_seconds_per_attempt: 5.0
+  peak_memory_bytes: 8388608
+  output_bytes_per_attempt: 262144
+  privilege: none
+
+demand_geometry:
+  timer_reads_per_unit: 2
+intervention_axes:
+  - completed_units
+invariants:
+  - timer source
+  - native provider implementation
+  - process execution model
+forms:
+  - baseline
+points:
+  - point_id: native-timer-1k
+    parameters:
+      completed_units: 1000
+    profiles: [smoke, qualify, review, characterize]
+  - point_id: native-timer-10k
+    parameters:
+      completed_units: 10000
+    profiles: [qualify, characterize]
+timing_authority: provider_elapsed
+supported_modes: [product, characterization, mechanism]
+primary_metrics:
+  - ns_per_unit
+diagnostic_metrics:
+  - min_positive_delta_ns
+  - zero_delta_count
+  - non_monotonic_count
+obligations:
+  work.completed_units:
+    severity: blocking
+    description: The provider must report the exact completed observation count.
+  work.output_checksum:
+    severity: blocking
+    description: Delta statistics must contribute to the retained output.
+  instrument.timer_qualified:
+    severity: blocking
+    description: The native timer must show monotonic observations and positive effective resolution.
+mutants:
+  - mutant_id: controls.native_timer_non_monotonic
+    description: Emits a negative or reversing interval in the control population.
+    expected_failures: [instrument.timer_qualified]
+  - mutant_id: controls.native_timer_zero_resolution
+    description: Reports no positive timer delta.
+    expected_failures: [instrument.timer_qualified]
+claim_boundary:
+  - does_not_measure_cpu_instruction_latency
+  - does_not_establish_cross_core_counter_synchronization
+  - qualifies_only_the_timer_and_execution_stack_named_in_the_receipt

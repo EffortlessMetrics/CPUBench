@@ -15,3 +15,6 @@ All notable changes will be documented here.
 - Exact provider stdout/stderr retention and unexpected-file verification.
 - Strict direct comparison of finalized compatible campaigns through StudySpec.
 - Complete construct, protocol, platform, trust, integrity, authoring, release, and roadmap documentation.
+- Campaign-derived Python and native interval-timer qualification, including read-pair overhead, effective resolution, monotonicity evidence, profile-level minimum duration, and attempt rejection below the qualified threshold.
+- Native timer-overhead calibration family and obligation-level timer mutants.
+- Timer qualification tables in HTML, Markdown, and JSON reports.

@@ -6,6 +6,7 @@ def test_control_provider_contract() -> None:
     provider = python_provider("cpubench.providers.control", "python-control")
     descriptor = provider.describe()
     assert descriptor.provider_id == "python-control"
+    assert descriptor.provider_version == "0.2.0"
     assert provider.self_test()["ok"] is True
     item = RunPlanItem(
         attempt_id="test-control",
@@ -30,5 +31,16 @@ def test_control_provider_contract() -> None:
     attempt = provider.run_attempt(item)
     assert attempt.state.value == "completed"
     assert len(attempt.samples) == 2
+    assert attempt.effective_parameters["timer_control"] is True
     assert attempt.provider_stdout
     assert attempt.provider_stderr == ""
+
+    for sample in attempt.samples:
+        metrics = sample.metrics
+        assert metrics["non_monotonic_count"] == 0
+        assert metrics["zero_delta_count"] >= 0
+        assert metrics["min_positive_delta_ns"] >= 0
+        assert metrics["max_delta_ns"] >= metrics["min_positive_delta_ns"]
+        assert metrics["sum_pair_delta_ns"] >= metrics["max_delta_ns"]
+        if metrics["min_positive_delta_ns"] == 0:
+            assert metrics["zero_delta_count"] == sample.completed_units

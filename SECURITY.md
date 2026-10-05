@@ -20,7 +20,7 @@ Security-sensitive areas include:
 
 ## Current posture
 
-`0.1.0a0` is intended for trusted first-party and pinned provider code.
+`0.2.0a0` is intended for trusted first-party and pinned provider code.
 
 It does not yet sandbox untrusted contributed providers. Do not run unknown benchmark packs on valuable hardware.
 
