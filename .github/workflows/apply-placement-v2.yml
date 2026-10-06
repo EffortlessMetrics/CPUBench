@@ -1,0 +1,41 @@
+name: Apply placement qualification v2
+
+on:
+  push:
+    branches: [feat/placement-residency-v2]
+    paths:
+      - ".github/workflows/apply-placement-v2.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify and apply source patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "db28c061182b124123a34cf28cefd79664e811e5d3fdde7682fd7f30f3cf401c  .bootstrap/placement-v2.patch.xz" | sha256sum -c -
+          xz -dc .bootstrap/placement-v2.patch.xz > /tmp/placement-v2.patch
+          echo "56bff76db9a3fccab8d9ef5997866502585952d74419fc097fe0544657f1f1c2  /tmp/placement-v2.patch" | sha256sum -c -
+          git apply --check /tmp/placement-v2.patch
+          git apply /tmp/placement-v2.patch
+          rm -rf .bootstrap .github/workflows/apply-placement-v2.yml
+          git diff --check
+
+      - name: Commit implementation
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "EffortlessSteven"
+          git config user.email "15812269+EffortlessSteven@users.noreply.github.com"
+          git add -A
+          git commit -m "feat: qualify placement and execution residency"
+          git push origin HEAD:feat/placement-residency-v2
