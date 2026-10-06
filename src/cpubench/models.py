@@ -178,8 +178,12 @@ class PlacementReceipt(StrictModel):
         )
         if derived_observed:
             object.__setattr__(self, "observed_cpus", derived_observed)
-        if self.observed_start_cpu is not None and self.observed_end_cpu is not None:
-            object.__setattr__(self, "migrated", self.observed_start_cpu != self.observed_end_cpu)
+        if (
+            self.observed_start_cpu is not None
+            and self.observed_end_cpu is not None
+            and self.observed_start_cpu != self.observed_end_cpu
+        ):
+            object.__setattr__(self, "migrated", True)
 
         if self.selector == "scheduler_open":
             if self.requested or self.request_verified or self.hard_affinity_verified:

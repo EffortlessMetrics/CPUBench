@@ -18,12 +18,14 @@ class PlacementError(RuntimeError):
         receipt: PlacementReceipt,
         *,
         attempt_state: AttemptState,
+        abort_campaign: bool = False,
     ) -> None:
         super().__init__(detail)
         self.reason_code = reason_code
         self.detail = detail
         self.receipt = receipt
         self.attempt_state = attempt_state
+        self.abort_campaign = abort_campaign
 
 
 def _replace(receipt: PlacementReceipt, **updates: Any) -> PlacementReceipt:
@@ -58,6 +60,17 @@ def _platform_authority(system: str) -> str:
     if system == "windows":
         return "psutil.Process.cpu_affinity+provider.GetCurrentProcessorNumber"
     return "psutil.Process.cpu_affinity+provider_residency"
+
+
+def _restore_affinity(process: Any, original: list[int]) -> tuple[bool, str | None]:
+    try:
+        process.cpu_affinity(original)
+        restored = _affinity(process)
+    except (psutil.Error, OSError, ValueError) as exc:
+        return False, str(exc)
+    if restored != original:
+        return False, f"restoration readback mismatch: expected {original}, observed {restored}"
+    return True, None
 
 
 @dataclass
@@ -355,27 +368,42 @@ def placement_scope(selector: str) -> Iterator[PlacementSession]:
         process.cpu_affinity([cpu])
         accepted = _affinity(process)
     except (psutil.Error, OSError, ValueError) as exc:
-        receipt = _error_receipt(
-            selector,
-            system,
-            CapabilityState.FAILED,
-            "affinity_request_failed",
-            str(exc),
+        restored, restore_detail = _restore_affinity(process, original)
+        reason_code = "affinity_request_or_readback_failed"
+        detail = str(exc)
+        abort_campaign = not restored
+        if abort_campaign:
+            reason_code = "affinity_restore_failed_after_request"
+            detail = f"{detail}; restoration failed: {restore_detail}"
+        receipt = PlacementReceipt(
+            selector=selector,
+            platform=system,
+            state=CapabilityState.FAILED,
+            authority=_platform_authority(system),
+            requested=True,
+            request_verified=False,
             requested_cpus=[cpu],
             original_cpus=original,
+            restored=restored,
+            reason_code=reason_code,
+            detail=detail,
         )
         raise PlacementError(
             receipt.reason_code,
             receipt.detail or receipt.reason_code,
             receipt,
             attempt_state=AttemptState.INSTRUMENT_FAILED,
+            abort_campaign=abort_campaign,
         ) from exc
 
     if accepted != [cpu]:
-        try:
-            process.cpu_affinity(original)
-        except (psutil.Error, OSError, ValueError):
-            pass
+        restored, restore_detail = _restore_affinity(process, original)
+        reason_code = "affinity_readback_mismatch"
+        detail = f"Requested CPU {cpu}; affinity readback was {accepted}."
+        abort_campaign = not restored
+        if abort_campaign:
+            reason_code = "affinity_restore_failed_after_readback_mismatch"
+            detail = f"{detail} Restoration failed: {restore_detail}"
         receipt = PlacementReceipt(
             selector=selector,
             platform=system,
@@ -386,14 +414,16 @@ def placement_scope(selector: str) -> Iterator[PlacementSession]:
             requested_cpus=[cpu],
             accepted_cpus=accepted,
             original_cpus=original,
-            reason_code="affinity_readback_mismatch",
-            detail=f"Requested CPU {cpu}; affinity readback was {accepted}.",
+            restored=restored,
+            reason_code=reason_code,
+            detail=detail,
         )
         raise PlacementError(
             receipt.reason_code,
             receipt.detail or receipt.reason_code,
             receipt,
             attempt_state=AttemptState.INSTRUMENT_FAILED,
+            abort_campaign=abort_campaign,
         )
 
     session = PlacementSession(
@@ -414,8 +444,16 @@ def placement_scope(selector: str) -> Iterator[PlacementSession]:
     try:
         yield session
     finally:
-        try:
-            process.cpu_affinity(original)
+        restored, restore_detail = _restore_affinity(process, original)
+        if restored:
             session.receipt = _replace(session.receipt, restored=True)
-        except (psutil.Error, OSError, ValueError) as exc:
-            session.record_restore_failure(str(exc))
+        else:
+            detail = restore_detail or "affinity restoration could not be verified"
+            session.record_restore_failure(detail)
+            raise PlacementError(
+                session.receipt.reason_code,
+                session.receipt.detail or session.receipt.reason_code,
+                session.receipt,
+                attempt_state=AttemptState.INSTRUMENT_FAILED,
+                abort_campaign=True,
+            )

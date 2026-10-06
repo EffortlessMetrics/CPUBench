@@ -394,6 +394,8 @@ def execute_campaign(runtime: CampaignRuntime, *, resume: bool = False) -> dict[
                 "sequence_index": item.sequence_index,
             }
         )
+        attempt: AttemptRecord | None = None
+        fatal_placement_error: PlacementError | None = None
         try:
             with placement_scope(item.placement) as placement_session:
                 attempt = runtime.providers[item.provider_id].run_attempt(item)
@@ -401,18 +403,33 @@ def execute_campaign(runtime: CampaignRuntime, *, resume: bool = False) -> dict[
             placement = placement_session.receipt
         except PlacementError as exc:
             placement = exc.receipt
-            attempt = AttemptRecord(
-                attempt_id=item.attempt_id,
-                state=exc.attempt_state,
-                family_id=item.family_id,
-                point_id=item.point_id,
-                provider_id=item.provider_id,
-                requested_parameters=item.parameters,
-                started_at=utc_now(),
-                finished_at=utc_now(),
-                reason_code=exc.reason_code,
-                detail=exc.detail,
-            ).with_semantic_id()
+            if attempt is None:
+                attempt = AttemptRecord(
+                    attempt_id=item.attempt_id,
+                    state=exc.attempt_state,
+                    family_id=item.family_id,
+                    point_id=item.point_id,
+                    provider_id=item.provider_id,
+                    requested_parameters=item.parameters,
+                    started_at=utc_now(),
+                    finished_at=utc_now(),
+                    reason_code=exc.reason_code,
+                    detail=exc.detail,
+                ).with_semantic_id()
+            else:
+                attempt = attempt.model_copy(
+                    update={
+                        "state": exc.attempt_state,
+                        "reason_code": exc.reason_code,
+                        "detail": exc.detail,
+                        "finished_at": utc_now(),
+                        "semantic_id": None,
+                    }
+                ).with_semantic_id()
+            if exc.abort_campaign:
+                fatal_placement_error = exc
+        if attempt is None:
+            raise RuntimeError(f"attempt produced no record: {item.attempt_id}")
         attempt = _write_attempt(
             store,
             item,
@@ -430,6 +447,20 @@ def execute_campaign(runtime: CampaignRuntime, *, resume: bool = False) -> dict[
                 "reason_code": attempt.reason_code,
             }
         )
+        if fatal_placement_error is not None:
+            store.append_event(
+                {
+                    "event": "campaign_execution_aborted",
+                    "at": utc_now().isoformat(),
+                    "attempt_id": item.attempt_id,
+                    "reason_code": fatal_placement_error.reason_code,
+                    "detail": fatal_placement_error.detail,
+                }
+            )
+            raise RuntimeError(
+                "campaign execution stopped because runner CPU affinity could not be restored; "
+                "restart execution in a fresh process before resuming"
+            ) from fatal_placement_error
     store.append_event(
         {
             "event": "campaign_execution_complete",

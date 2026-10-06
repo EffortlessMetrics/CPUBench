@@ -42,7 +42,9 @@ Campaign preparation records dynamic state separately from machine identity:
 - battery and thermal readings where exposed;
 - dynamic known unknowns.
 
-The receipt describes the starting environment. Per-attempt placement is retained separately as a typed receipt containing the request, accepted affinity set, provider start/end CPU observations, migration status, restoration outcome, and named authority limit. Sustained telemetry and end-state comparison remain separate evidence surfaces.
+The receipt describes the starting environment. Per-attempt placement is retained separately as a typed receipt containing the request, accepted affinity set, provider start/end CPU observations, migration status, restoration outcome, and named authority limit. Differing endpoint observations prove migration; matching endpoints do not prove that no round-trip migration occurred between observations. Sustained telemetry and end-state comparison remain separate evidence surfaces.
+
+Affinity restoration is verified by readback. If restoration cannot be proved, the failed attempt is persisted and campaign execution stops before another attempt can inherit the altered runner state. A later resume must start in a fresh process.
 
 ## Linux
 

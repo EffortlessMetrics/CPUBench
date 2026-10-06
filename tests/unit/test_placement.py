@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+
 import pytest
 
 from cpubench.models import (
@@ -18,15 +19,26 @@ from cpubench.validation import _evaluate_obligation
 
 
 class FakeProcess:
-    def __init__(self, affinity: list[int], *, readback: list[int] | None = None, restore_fails: bool = False) -> None:
+    def __init__(
+        self,
+        affinity: list[int],
+        *,
+        readback: list[int] | None = None,
+        readback_failures: int = 0,
+        restore_fails: bool = False,
+    ) -> None:
         self.affinity = list(affinity)
         self.readback = readback
+        self.readback_failures = readback_failures
         self.restore_fails = restore_fails
         self.original = list(affinity)
         self.set_calls: list[list[int]] = []
 
     def cpu_affinity(self, value: list[int] | None = None) -> list[int]:
         if value is None:
+            if self.readback_failures and self.set_calls and self.affinity != self.original:
+                self.readback_failures -= 1
+                raise OSError("readback failed")
             if self.readback is not None and self.set_calls and self.affinity != self.original:
                 return list(self.readback)
             return list(self.affinity)
@@ -104,6 +116,19 @@ def test_scheduler_open_never_claims_hard_affinity(monkeypatch: pytest.MonkeyPat
     assert process.set_calls == []
 
 
+def test_matching_endpoint_snapshots_do_not_prove_no_migration(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    process = FakeProcess([0, 1])
+    _patch_process(monkeypatch, process, "Linux")
+
+    with placement_scope("scheduler_open") as session:
+        receipt = session.complete({"placement_start_cpu": 1, "placement_end_cpu": 1})
+
+    assert receipt.observed_cpus == [1]
+    assert receipt.migrated is None
+
+
 def test_linux_exact_cpu_requires_request_readback_and_residency(monkeypatch: pytest.MonkeyPatch) -> None:
     process = FakeProcess([0, 1])
     _patch_process(monkeypatch, process, "Linux")
@@ -172,6 +197,23 @@ def test_readback_mismatch_is_instrument_failure(monkeypatch: pytest.MonkeyPatch
     assert raised.value.reason_code == "affinity_readback_mismatch"
     assert raised.value.attempt_state == AttemptState.INSTRUMENT_FAILED
     assert raised.value.receipt.state == CapabilityState.FAILED
+    assert raised.value.receipt.restored is True
+    assert raised.value.abort_campaign is False
+    assert process.affinity == [0, 1]
+
+
+def test_readback_failure_restores_original_affinity(monkeypatch: pytest.MonkeyPatch) -> None:
+    process = FakeProcess([0, 1], readback_failures=1)
+    _patch_process(monkeypatch, process, "Linux")
+
+    with pytest.raises(PlacementError) as raised:
+        with placement_scope("cpu:1"):
+            pass
+
+    assert raised.value.reason_code == "affinity_request_or_readback_failed"
+    assert raised.value.receipt.restored is True
+    assert raised.value.abort_campaign is False
+    assert process.affinity == [0, 1]
 
 
 def test_unavailable_cpu_is_incompatible(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -214,13 +256,15 @@ def test_restore_failure_invalidates_placement(monkeypatch: pytest.MonkeyPatch) 
     process = FakeProcess([0, 1], restore_fails=True)
     _patch_process(monkeypatch, process, "Linux")
 
-    with placement_scope("cpu:1") as session:
-        session.complete({"placement_start_cpu": 1, "placement_end_cpu": 1})
+    with pytest.raises(PlacementError) as raised:
+        with placement_scope("cpu:1") as session:
+            session.complete({"placement_start_cpu": 1, "placement_end_cpu": 1})
 
-    assert session.receipt.state == CapabilityState.FAILED
-    assert session.receipt.hard_affinity_verified is False
-    assert session.receipt.restored is False
-    assert session.receipt.reason_code == "affinity_restore_failed"
+    assert raised.value.abort_campaign is True
+    assert raised.value.receipt.state == CapabilityState.FAILED
+    assert raised.value.receipt.hard_affinity_verified is False
+    assert raised.value.receipt.restored is False
+    assert raised.value.receipt.reason_code == "affinity_restore_failed"
 
 
 def test_hard_affinity_obligation_uses_typed_receipt() -> None:

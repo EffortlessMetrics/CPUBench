@@ -18,4 +18,4 @@ All notable changes will be documented here.
 - Campaign-derived Python and native interval-timer qualification, including read-pair overhead, effective resolution, monotonicity evidence, profile-level minimum duration, and attempt rejection below the qualified threshold.
 - Native timer-overhead calibration family and obligation-level timer mutants.
 - Timer qualification tables in HTML, Markdown, and JSON reports.
-- Typed per-attempt placement receipts with Linux affinity/residency qualification, Windows limited authority, macOS scheduler-open boundaries, migration detection, restoration evidence, mutants, schemas, and report surfaces.
+- Typed per-attempt placement receipts with Linux affinity/residency qualification, Windows limited authority, macOS scheduler-open boundaries, endpoint-bounded migration evidence, fail-closed restoration, mutants, schemas, and report surfaces.
