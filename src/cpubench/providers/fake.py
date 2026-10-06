@@ -6,6 +6,7 @@ import os
 import time
 
 from cpubench.models import FamilyDescriptor, ProviderDescriptor
+from cpubench.providers._residency import current_cpu, residency_metadata
 
 
 PROVIDER_ID = os.environ.get("CPUBENCH_FAKE_PROVIDER_ID", "fake-honest")
@@ -59,6 +60,10 @@ def main() -> int:
     if BEHAVIOR == "failing":
         return 3
 
+    placement_start_cpu = current_cpu()
+    start_metadata = residency_metadata(placement_start_cpu, None)
+    print(json.dumps(start_metadata, sort_keys=True, separators=(",", ":")))
+
     for idx in range(args.warmup_samples + args.samples):
         start = time.monotonic_ns()
         target = start + baseline_ns
@@ -83,6 +88,7 @@ def main() -> int:
                 separators=(",", ":"),
             )
         )
+    print(json.dumps(residency_metadata(placement_start_cpu, current_cpu()), sort_keys=True, separators=(",", ":")))
     return 0
 
 

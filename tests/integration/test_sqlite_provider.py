@@ -30,6 +30,9 @@ def test_sqlite_provider_self_test_and_run() -> None:
         )
     )
     assert attempt.state.value == "completed"
+    assert ("placement_start_cpu" in attempt.effective_parameters) == (
+        "placement_end_cpu" in attempt.effective_parameters
+    )
     assert len(attempt.samples) == 2
     assert attempt.effective_parameters["database_validated"] is True
     assert all(sample.completed_units == 200 for sample in attempt.samples)

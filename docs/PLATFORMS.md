@@ -42,8 +42,7 @@ Campaign preparation records dynamic state separately from machine identity:
 - battery and thermal readings where exposed;
 - dynamic known unknowns.
 
-The receipt describes the starting environment. Per-attempt residency, sustained
-telemetry, and end-state comparison remain separate future evidence surfaces.
+The receipt describes the starting environment. Per-attempt placement is retained separately as a typed receipt containing the request, accepted affinity set, provider start/end CPU observations, migration status, restoration outcome, and named authority limit. Sustained telemetry and end-state comparison remain separate evidence surfaces.
 
 ## Linux
 
@@ -52,6 +51,8 @@ Current alpha:
 - Python and native interval timers reported as available until campaign controls qualify overhead, resolution, and monotonicity;
 - bundled provider uses `CLOCK_MONOTONIC_RAW` where exposed, otherwise `CLOCK_MONOTONIC`;
 - process affinity request/readback through psutil;
+- per-attempt provider start/end CPU observations through `sched_getcpu`;
+- qualified exact-CPU placement only when request, readback, residency, and restoration agree;
 - sysfs logical/core/package/sibling topology;
 - basic cache metadata from sysfs;
 - `/proc/cpuinfo` identity;
@@ -65,8 +66,7 @@ Planned:
 - multiplexing and coverage receipts;
 - NUMA memory placement;
 - huge-page treatments;
-- energy counter qualification;
-- per-attempt residency evidence.
+- energy counter qualification.
 
 ## Windows
 
@@ -74,7 +74,9 @@ Current alpha:
 
 - campaign-qualified Python monotonic timing;
 - native provider uses and campaign-qualifies `QueryPerformanceCounter`;
-- psutil affinity where available;
+- psutil process affinity where available;
+- provider start/end processor observations through `GetCurrentProcessorNumber`;
+- explicit `available_unqualified` status until processor-group and CPU Set authority is implemented;
 - basic processor and memory inventory.
 
 Required before strong topology claims:
@@ -94,7 +96,8 @@ Current alpha:
 - campaign-qualified Python monotonic timing;
 - native provider uses and campaign-qualifies a monotonic POSIX clock;
 - scheduler-open product/portable measurements;
-- explicit statement that hard affinity is not claimed.
+- explicit `unsupported` result for exact-CPU hard-affinity requests;
+- explicit statement that hard affinity and authoritative logical-CPU residency are not claimed.
 
 Planned:
 
@@ -142,3 +145,20 @@ different_numa_node
 ```
 
 The planner will resolve semantic selectors into platform IDs and preserve both the request and resolution.
+
+## Per-attempt placement receipt
+
+Each attempt records:
+
+```text
+selector and platform
+requested and accepted CPU sets
+request/readback status
+provider start and end CPU observations
+migration and residency verdict
+hard-affinity authority
+affinity restoration outcome
+stable reason code and detail
+```
+
+`scheduler_open` remains a deliberate operating mode and never acquires a hard-affinity label merely because start and end observations happen to match. Legacy untyped placement records remain readable but cannot be promoted to qualified authority.

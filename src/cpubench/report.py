@@ -3,14 +3,18 @@ from __future__ import annotations
 import html
 import json
 import math
-from collections import defaultdict
+from collections import Counter, defaultdict
 from pathlib import Path
 
 from .evidence import atomic_write_json, atomic_write_text
-from .models import AnalysisBundle, CampaignSpec, MachineReceipt, PointEstimate, ValidationBundle
+from .models import AnalysisBundle, AttemptRecord, CampaignSpec, MachineReceipt, PointEstimate, ValidationBundle
 
 
 LIGHT = "#f5f1e8"
+
+
+def _placement_sort_key(item: tuple[tuple[object, ...], int]) -> tuple[str, ...]:
+    return tuple("" if value is None else str(value) for value in item[0])
 PAPER = "#fafaf7"
 INK = "#1a1816"
 TEAL = "#156b76"
@@ -130,6 +134,10 @@ def generate_report(campaign_dir: Path) -> Path:
     analysis = AnalysisBundle.model_validate_json(
         (campaign_dir / "analysis" / "analysis-bundle.json").read_text(encoding="utf-8")
     )
+    attempts = [
+        AttemptRecord.model_validate_json(path.read_text(encoding="utf-8"))
+        for path in sorted((campaign_dir / "attempts").glob("*/attempt.json"))
+    ]
 
     grouped: dict[str, list[PointEstimate]] = defaultdict(list)
     for point in analysis.points:
@@ -182,6 +190,40 @@ def generate_report(campaign_dir: Path) -> Path:
         f"<td>{html.escape(value.detail or '')}</td>"
         "</tr>"
         for name, value in sorted(machine.capabilities.items())
+    )
+
+    placement_counts = Counter(
+        (
+            attempt.placement.selector,
+            attempt.placement.state.value,
+            attempt.placement.request_verified,
+            attempt.placement.residency_verified,
+            attempt.placement.hard_affinity_verified,
+            attempt.placement.restored,
+            attempt.placement.reason_code,
+        )
+        for attempt in attempts
+    )
+    placement_rows = "".join(
+        "<tr>"
+        f"<td><code>{html.escape(selector)}</code></td>"
+        f"<td>{html.escape(state)}</td>"
+        f"<td>{html.escape(str(request_verified))}</td>"
+        f"<td>{html.escape(str(residency_verified))}</td>"
+        f"<td>{html.escape(str(hard_verified))}</td>"
+        f"<td>{html.escape(str(restored))}</td>"
+        f"<td>{count:,}</td>"
+        f"<td><code>{html.escape(reason_code)}</code></td>"
+        "</tr>"
+        for (
+            selector,
+            state,
+            request_verified,
+            residency_verified,
+            hard_verified,
+            restored,
+            reason_code,
+        ), count in sorted(placement_counts.items(), key=_placement_sort_key)
     )
 
     html_text = f"""<!doctype html>
@@ -243,6 +285,10 @@ footer {{ margin-top:34px; color:#5f5953; font-size:.9rem; }}
 <section>
 <h2>Timer qualification</h2>
 <table><thead><tr><th>Timer</th><th>State</th><th>Read overhead</th><th>Effective resolution</th><th>Minimum sample</th><th>Observations</th><th>Non-monotonic</th><th>Failed controls</th><th>Invalid controls</th><th>Reason</th></tr></thead><tbody>{timer_qualification_rows}</tbody></table>
+</section>
+<section>
+<h2>Placement authority</h2>
+<table><thead><tr><th>Selector</th><th>State</th><th>Request readback</th><th>Residency</th><th>Hard affinity</th><th>Restored</th><th>Attempts</th><th>Reason</th></tr></thead><tbody>{placement_rows}</tbody></table>
 </section>
 <section>
 <h2>Measurement authority</h2>
@@ -308,6 +354,28 @@ footer {{ margin-top:34px; color:#5f5953; font-size:.9rem; }}
     markdown_lines.extend(
         [
             "",
+            "## Placement authority",
+            "",
+            "| Selector | State | Request readback | Residency | Hard affinity | Restored | Attempts | Reason |",
+            "|---|---|---:|---:|---:|---:|---:|---|",
+        ]
+    )
+    for (
+        selector,
+        state,
+        request_verified,
+        residency_verified,
+        hard_verified,
+        restored,
+        reason_code,
+    ), count in sorted(placement_counts.items(), key=_placement_sort_key):
+        markdown_lines.append(
+            f"| `{selector}` | `{state}` | {request_verified} | {residency_verified} | "
+            f"{hard_verified} | {restored} | {count} | `{reason_code}` |"
+        )
+    markdown_lines.extend(
+        [
+            "",
             "## Claim boundary",
             "",
             "This campaign does not produce a universal CPU score. Family-level evidence remains canonical.",
@@ -325,6 +393,15 @@ footer {{ margin-top:34px; color:#5f5953; font-size:.9rem; }}
                 timer: qualification.model_dump(mode="json", exclude_none=True)
                 for timer, qualification in sorted(validation.timer_qualifications.items())
             },
+            "placements": [
+                {
+                    "attempt_id": attempt.attempt_id,
+                    "family_id": attempt.family_id,
+                    "point_id": attempt.point_id,
+                    "receipt": attempt.placement.model_dump(mode="json", exclude_none=True),
+                }
+                for attempt in attempts
+            ],
             "points": [point.model_dump(mode="json") for point in analysis.points],
         },
     )

@@ -21,6 +21,7 @@ from .models import (
     MachineReceipt,
     PackRelease,
     PackSpec,
+    PlacementReceipt,
     ProfileSpec,
     RunEnvironmentReceipt,
     RunPlan,
@@ -312,13 +313,15 @@ def _assert_attempt_matches_plan(
     }
     if observed != expected:
         raise RuntimeError(f"attempt record differs from frozen plan: {item.attempt_id}")
+    if attempt.placement.selector != item.placement:
+        raise RuntimeError(f"attempt placement differs from frozen plan: {item.attempt_id}")
 
 
 def _write_attempt(
     store: CampaignStore,
     item: RunPlanItem,
     attempt: AttemptRecord,
-    placement: dict[str, Any],
+    placement: PlacementReceipt,
     run_environment_receipt_id: str,
 ) -> AttemptRecord:
     attempt_dir = store.attempt_dir(item.attempt_id)
@@ -342,7 +345,7 @@ def _write_attempt(
     )
     atomic_write_text(attempt_dir / "samples.ndjson", sample_lines)
     atomic_write_json(attempt_dir / "output.json", attempt.work_output)
-    atomic_write_json(attempt_dir / "placement.json", placement)
+    atomic_write_json(attempt_dir / "placement.json", placement.model_dump(mode="json", exclude_none=True))
     if attempt.provider_stdout:
         atomic_write_text(attempt_dir / "provider.stdout.ndjson", attempt.provider_stdout)
     if attempt.provider_stderr:
@@ -392,21 +395,23 @@ def execute_campaign(runtime: CampaignRuntime, *, resume: bool = False) -> dict[
             }
         )
         try:
-            with placement_scope(item.placement) as placement:
+            with placement_scope(item.placement) as placement_session:
                 attempt = runtime.providers[item.provider_id].run_attempt(item)
+                placement_session.complete(attempt.effective_parameters)
+            placement = placement_session.receipt
         except PlacementError as exc:
-            placement = {"selector": item.placement, "requested": True, "verified": False, "error": str(exc)}
+            placement = exc.receipt
             attempt = AttemptRecord(
                 attempt_id=item.attempt_id,
-                state=AttemptState.UNSUPPORTED,
+                state=exc.attempt_state,
                 family_id=item.family_id,
                 point_id=item.point_id,
                 provider_id=item.provider_id,
                 requested_parameters=item.parameters,
                 started_at=utc_now(),
                 finished_at=utc_now(),
-                reason_code="placement_unsupported",
-                detail=str(exc),
+                reason_code=exc.reason_code,
+                detail=exc.detail,
             ).with_semantic_id()
         attempt = _write_attempt(
             store,
@@ -494,6 +499,12 @@ def finalize_campaign(campaign_dir: Path) -> dict[str, Any]:
             raise RuntimeError(f"attempt environment identity mismatch: {attempt.attempt_id}")
         if execution_environment.machine_receipt_id != plan.machine_receipt_id:
             raise RuntimeError(f"attempt environment references another machine: {attempt.attempt_id}")
+        placement_path = root / "attempts" / attempt.attempt_id / "placement.json"
+        if not placement_path.exists():
+            raise RuntimeError(f"attempt placement receipt is missing: {attempt.attempt_id}")
+        placement = PlacementReceipt.model_validate_json(placement_path.read_text(encoding="utf-8"))
+        if placement != attempt.placement:
+            raise RuntimeError(f"attempt placement receipt mismatch: {attempt.attempt_id}")
         recomputed = attempt.model_copy(update={"semantic_id": None}).with_semantic_id()
         if recomputed.semantic_id != attempt.semantic_id:
             raise RuntimeError(f"attempt semantic identity mismatch: {attempt.attempt_id}")

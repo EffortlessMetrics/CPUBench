@@ -262,7 +262,7 @@ def test_python_timer_control_detects_reversal_between_pairs(monkeypatch: object
 
     assert control.run_timer_overhead(samples=1, warmups=0, completed_units=2) == 0
     output = capsys.readouterr().out.splitlines()  # type: ignore[attr-defined]
-    sample = json.loads(output[-1])
+    sample = next(json.loads(line) for line in output if json.loads(line).get("record_type") == "sample")
     assert sample["non_monotonic_count"] == 1
 
 
@@ -289,7 +289,7 @@ def test_python_timer_control_carries_warmup_reversal(monkeypatch: object, capsy
 
     assert control.run_timer_overhead(samples=1, warmups=1, completed_units=1) == 0
     output = capsys.readouterr().out.splitlines()  # type: ignore[attr-defined]
-    sample = json.loads(output[-1])
+    sample = next(json.loads(line) for line in output if json.loads(line).get("record_type") == "sample")
     assert sample["non_monotonic_count"] == 1
 
 

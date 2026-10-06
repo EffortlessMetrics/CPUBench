@@ -177,6 +177,8 @@ Each item records:
 - implementation policy;
 - placement selector.
 
+The selector is a request, not execution evidence. Each completed attempt receives a typed `PlacementReceipt` that preserves requested and accepted CPU sets, provider start/end CPU observations, migration, restoration, authority state, and a stable reason code. Linux exact-CPU attempts are qualified only when affinity request/readback and provider residency agree. Windows remains explicitly limited until processor-group and CPU Set authority is qualified. macOS remains scheduler-open and does not claim hard affinity.
+
 ## Attempt lifecycle
 
 ```text

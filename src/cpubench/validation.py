@@ -418,11 +418,18 @@ def _evaluate_obligation(
         return _timer_outcome(attempt, machine, timer_qualifications)
 
     if obligation_id == "placement.hard_affinity":
-        if attempt.placement.get("verified") is True:
-            return _result(obligation_id, ValidityOutcome.PASS, "affinity_mask_verified")
-        if attempt.placement.get("selector") == "scheduler_open":
+        placement = attempt.placement
+        if placement.selector == "scheduler_open":
             return _result(obligation_id, ValidityOutcome.UNSUPPORTED, "scheduler_open_by_design")
-        return _result(obligation_id, ValidityOutcome.FAIL, "placement_not_verified")
+        if placement.hard_affinity_verified:
+            return _result(obligation_id, ValidityOutcome.PASS, placement.reason_code, placement.detail)
+        if placement.state == CapabilityState.FAILED:
+            return _result(obligation_id, ValidityOutcome.FAIL, placement.reason_code, placement.detail)
+        if placement.state == CapabilityState.UNSUPPORTED:
+            return _result(obligation_id, ValidityOutcome.UNSUPPORTED, placement.reason_code, placement.detail)
+        if placement.state in {CapabilityState.AVAILABLE_UNQUALIFIED, CapabilityState.UNKNOWN}:
+            return _result(obligation_id, ValidityOutcome.INCONCLUSIVE, placement.reason_code, placement.detail)
+        return _result(obligation_id, ValidityOutcome.INCONCLUSIVE, "placement_not_qualified")
 
     return _result(obligation_id, ValidityOutcome.INCONCLUSIVE, "validator_not_implemented")
 

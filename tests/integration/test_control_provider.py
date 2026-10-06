@@ -30,6 +30,9 @@ def test_control_provider_contract() -> None:
     )
     attempt = provider.run_attempt(item)
     assert attempt.state.value == "completed"
+    assert ("placement_start_cpu" in attempt.effective_parameters) == (
+        "placement_end_cpu" in attempt.effective_parameters
+    )
     assert len(attempt.samples) == 2
     assert attempt.effective_parameters["timer_control"] is True
     assert attempt.provider_stdout

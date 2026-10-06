@@ -7,6 +7,7 @@ import time
 from typing import Any
 
 from cpubench.models import FamilyDescriptor, ProviderDescriptor
+from cpubench.providers._residency import current_cpu, residency_metadata
 
 
 PROVIDER_ID = "python-control"
@@ -42,7 +43,16 @@ def emit(value: dict[str, Any]) -> None:
 
 def run_timer_overhead(samples: int, warmups: int, completed_units: int) -> int:
     timer = "python.time.monotonic_ns"
-    emit({"record_type": "metadata", "setup_excluded": True, "timer": timer, "timer_control": True})
+    placement_start_cpu = current_cpu()
+    metadata: dict[str, Any] = {
+        "record_type": "metadata",
+        "setup_excluded": True,
+        "timer": timer,
+        "timer_control": True,
+    }
+    if placement_start_cpu is not None:
+        metadata["placement_start_cpu"] = placement_start_cpu
+    emit(metadata)
     previous_reading: int | None = None
     carried_non_monotonic_count = 0
     for sample_index in range(warmups + samples):
@@ -106,11 +116,20 @@ def run_timer_overhead(samples: int, warmups: int, completed_units: int) -> int:
                 "sum_pair_delta_ns": sum_pair_delta_ns,
             }
         )
+    emit(residency_metadata(placement_start_cpu, current_cpu()))
     return 0
 
 
 def run_sleep_interval(samples: int, warmups: int, sleep_ns: int) -> int:
-    emit({"record_type": "metadata", "setup_excluded": True, "timer": "python.time.monotonic_ns"})
+    placement_start_cpu = current_cpu()
+    metadata: dict[str, Any] = {
+        "record_type": "metadata",
+        "setup_excluded": True,
+        "timer": "python.time.monotonic_ns",
+    }
+    if placement_start_cpu is not None:
+        metadata["placement_start_cpu"] = placement_start_cpu
+    emit(metadata)
     for sample_index in range(warmups + samples):
         start = time.monotonic_ns()
         time.sleep(sleep_ns / 1_000_000_000)
@@ -131,6 +150,7 @@ def run_sleep_interval(samples: int, warmups: int, sleep_ns: int) -> int:
                 "requested_sleep_ns": sleep_ns,
             }
         )
+    emit(residency_metadata(placement_start_cpu, current_cpu()))
     return 0
 
 

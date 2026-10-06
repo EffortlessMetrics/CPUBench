@@ -35,6 +35,7 @@ def current_instrument_release() -> InstrumentRelease:
             "provider_protocol": "1",
             "evidence_format": "2",
             "timer_qualification": "1",
+            "placement_qualification": "1",
             "schema_generation": "pydantic-v2",
         },
         known_limits=[
@@ -42,6 +43,8 @@ def current_instrument_release() -> InstrumentRelease:
             "the alpha has not completed publication-grade multi-machine qualification",
             "active challenge-pack execution against real products is not yet included",
             "timer authority is campaign-qualified but cross-core counter synchronization remains unqualified",
+            "Windows processor-group and CPU Set placement authority remain unqualified",
+            "macOS remains scheduler-open and does not claim hard affinity",
         ],
     ).with_semantic_id()
 

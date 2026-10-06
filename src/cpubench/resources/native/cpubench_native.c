@@ -1,3 +1,7 @@
+#if defined(__linux__) && !defined(_GNU_SOURCE)
+#define _GNU_SOURCE
+#endif
+
 #include <errno.h>
 #include <inttypes.h>
 #include <stdint.h>
@@ -9,11 +13,30 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #else
+#ifdef __linux__
+#include <sched.h>
+#endif
 #include <time.h>
 #endif
 
 #define PROVIDER_ID "native-c11"
 #define PROVIDER_VERSION "0.2.0"
+
+static int current_cpu(void) {
+#ifdef _WIN32
+    return (int)GetCurrentProcessorNumber();
+#elif defined(__linux__)
+    return sched_getcpu();
+#else
+    return -1;
+#endif
+}
+
+static void emit_cpu_metadata(const char *key, int cpu) {
+    if (cpu >= 0) {
+        printf("{\"record_type\":\"metadata\",\"%s\":%d}\n", key, cpu);
+    }
+}
 
 static const char *timer_name(void) {
 #ifdef _WIN32
@@ -230,6 +253,8 @@ static int run_timer_overhead(int argc, char **argv) {
         return 2;
     }
 
+    int placement_start_cpu = current_cpu();
+    emit_cpu_metadata("placement_start_cpu", placement_start_cpu);
     printf("{\"record_type\":\"metadata\",\"family_id\":\"controls.native_timer_overhead\",\"timer\":\"%s\",\"timer_control\":true,\"setup_excluded\":true}\n", timer_name());
     uint64_t previous_reading = 0;
     uint64_t carried_non_monotonic_count = 0;
@@ -314,6 +339,7 @@ static int run_timer_overhead(int argc, char **argv) {
                non_monotonic_count, zero_delta_count, effective_resolution,
                max_delta_ns, sum_pair_delta_ns);
     }
+    emit_cpu_metadata("placement_end_cpu", current_cpu());
     return 0;
 }
 
@@ -409,6 +435,8 @@ static int run_benchmark(int argc, char **argv) {
         return 3;
     }
 
+    int placement_start_cpu = current_cpu();
+    emit_cpu_metadata("placement_start_cpu", placement_start_cpu);
     printf("{\"record_type\":\"metadata\",\"family_id\":\"%s\",\"working_set_bytes\":%zu,\"chains\":%u,\"seed\":%" PRIu64 ",\"timer\":\"%s\",\"cycle_validated\":true,\"disjoint_chains\":true,\"setup_excluded\":true}\n", family, count * sizeof(uint32_t), chains, seed, timer_name());
 
     uint64_t combined_checksum = 0;
@@ -440,6 +468,7 @@ static int run_benchmark(int argc, char **argv) {
     if (combined_checksum == UINT64_MAX) {
         fprintf(stderr, "checksum sentinel: %" PRIu64 "\n", combined_checksum);
     }
+    emit_cpu_metadata("placement_end_cpu", current_cpu());
     free(next);
     return 0;
 }
