@@ -1,16 +1,23 @@
 from __future__ import annotations
 
+from collections.abc import Callable
+from typing import cast
+
 import psutil
 
 
 def current_cpu() -> int | None:
+    process = psutil.Process()
+    getter = getattr(process, "cpu_num", None)
+    if not callable(getter):
+        return None
     try:
-        value = psutil.Process().cpu_num()
+        value = cast(Callable[[], int], getter)()
     except (AttributeError, OSError, NotImplementedError, psutil.Error):
         return None
-    if value is None or int(value) < 0:
+    if value < 0:
         return None
-    return int(value)
+    return value
 
 
 def residency_metadata(start_cpu: int | None, end_cpu: int | None) -> dict[str, int | str]:
