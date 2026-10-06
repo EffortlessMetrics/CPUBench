@@ -136,7 +136,9 @@ hardware/software stacks.
 - No instrument release has completed multi-machine qualification.
 - Machine receipts still need stronger privacy projection before public sharing.
 - Provider raw stdout is parsed into evidence; exact byte-for-byte channel retention is scheduled next.
-- Platform placement is limited to scheduler-open or a logical CPU ID; Linux can qualify exact-CPU attempts when request, readback, and provider residency agree.
+- Platform placement is limited to scheduler-open or a logical CPU ID; Linux can qualify exact-CPU attempts only when request, readback, provider endpoint residency, and verified restoration all agree.
+- Matching start/end CPU observations do not prove that no round-trip migration occurred during timed work; they leave migration unknown.
+- An unverified affinity restoration is a fatal execution-session error: the affected attempt is persisted and the campaign stops before another attempt can inherit the corrupted state.
 - Windows processor-group and CPU Set authority is incomplete.
 - macOS remains scheduler-open.
 - PMU, cycles, energy, NUMA placement, and sustained thermal traces are not yet qualified.
