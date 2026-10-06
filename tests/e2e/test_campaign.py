@@ -1,4 +1,6 @@
+from contextlib import contextmanager
 from pathlib import Path
+from typing import Iterator
 
 import pytest
 import yaml
@@ -6,7 +8,17 @@ import yaml
 from cpubench.analysis import analyze_campaign
 from cpubench.campaign import execute_campaign, finalize_campaign, persist_runtime, prepare_runtime
 from cpubench.evidence import CampaignStore
-from cpubench.models import AttemptRecord, CapabilityState, InstrumentRelease, PackRelease, ProfileSpec, RunPlan
+from cpubench.models import (
+    AttemptRecord,
+    AttemptState,
+    CapabilityState,
+    InstrumentRelease,
+    PackRelease,
+    PlacementReceipt,
+    ProfileSpec,
+    RunPlan,
+)
+from cpubench.placement import PlacementError, PlacementSession
 from cpubench.report import generate_report
 from cpubench.validation import validate_campaign
 
@@ -86,7 +98,7 @@ def test_control_only_campaign_end_to_end(tmp_path: Path) -> None:
     stored_attempt = AttemptRecord.model_validate_json(attempt_path.read_text(encoding="utf-8"))
     recomputed = stored_attempt.model_copy(update={"semantic_id": None}).with_semantic_id()
     assert stored_attempt.semantic_id == recomputed.semantic_id
-    assert stored_attempt.placement["selector"] == "scheduler_open"
+    assert stored_attempt.placement.selector == "scheduler_open"
     assert stored_attempt.run_environment_receipt_id
     environment_digest = stored_attempt.run_environment_receipt_id.split(":", 1)[-1]
     assert (runtime.store.root / "run-environments" / f"{environment_digest}.json").exists()
@@ -122,6 +134,80 @@ def test_work_correct_view_is_usable_without_measurement_requirements(tmp_path: 
     execute_campaign(runtime)
     validation = validate_campaign(runtime.store.root, validity_view="work_correct")
     assert all(item.comparability.value == "pass" for item in validation.attempts)
+
+
+def test_campaign_stops_after_unverified_affinity_restoration(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    campaign_file = tmp_path / "fatal-placement.yaml"
+    campaign_file.write_text(
+        yaml.safe_dump(
+            {
+                "schema_version": 1,
+                "artifact_kind": "campaign_spec",
+                "campaign_id": "fatal-placement",
+                "title": "Fatal placement",
+                "description": "Unverified restoration must stop the campaign.",
+                "profile": "profiles/smoke.yaml",
+                "packs": [{"pack": "packs/controls/pack.yaml"}],
+                "operating_mode": "characterization",
+                "implementation_policy": "native",
+                "placement": "scheduler_open",
+                "output_root": str(tmp_path / "fatal-placement-runs"),
+                "schedule_seed": 21,
+                "public_claims_enabled": False,
+            },
+            sort_keys=False,
+        ),
+        encoding="utf-8",
+    )
+    runtime = prepare_runtime(campaign_file, resume=True)
+    persist_runtime(runtime)
+
+    @contextmanager
+    def fatal_scope(selector: str) -> Iterator[PlacementSession]:
+        session = PlacementSession(
+            PlacementReceipt(
+                selector=selector,
+                platform="linux",
+                state=CapabilityState.AVAILABLE_UNQUALIFIED,
+                authority="test",
+                reason_code="residency_pending",
+            )
+        )
+        yield session
+        receipt = session.receipt.model_copy(
+            update={
+                "state": CapabilityState.FAILED,
+                "hard_affinity_verified": False,
+                "restored": False,
+                "reason_code": "affinity_restore_failed",
+                "detail": "synthetic restoration failure",
+            }
+        )
+        raise PlacementError(
+            receipt.reason_code,
+            receipt.detail or receipt.reason_code,
+            PlacementReceipt.model_validate(receipt.model_dump()),
+            attempt_state=AttemptState.INSTRUMENT_FAILED,
+            abort_campaign=True,
+        )
+
+    monkeypatch.setattr("cpubench.campaign.placement_scope", fatal_scope)
+    with pytest.raises(RuntimeError, match="could not be restored"):
+        execute_campaign(runtime)
+
+    attempts = list((runtime.store.root / "attempts").glob("*/attempt.json"))
+    assert len(attempts) == 1
+    attempt = AttemptRecord.model_validate_json(attempts[0].read_text(encoding="utf-8"))
+    assert attempt.state == AttemptState.INSTRUMENT_FAILED
+    assert attempt.reason_code == "affinity_restore_failed"
+    assert attempt.samples
+    assert attempt.placement.restored is False
+
+    events = (runtime.store.root / "events.ndjson").read_text(encoding="utf-8")
+    assert "campaign_execution_aborted" in events
 
 
 def test_campaign_finalization_rejects_incomplete_bundle(tmp_path: Path) -> None:
@@ -293,3 +379,20 @@ def test_validation_rejects_profile_with_stale_semantic_identity(tmp_path: Path)
 
     with pytest.raises(ValueError, match="profile semantic identity"):
         validate_campaign(runtime.store.root)
+
+
+def test_finalization_rejects_tampered_placement_receipt(tmp_path: Path) -> None:
+    runtime = prepare_runtime(_write_profile_policy_campaign(tmp_path, "placement-tamper"), resume=True)
+    persist_runtime(runtime)
+    execute_campaign(runtime)
+    validate_campaign(runtime.store.root)
+    analyze_campaign(runtime.store.root)
+    generate_report(runtime.store.root)
+
+    placement_path = next((runtime.store.root / "attempts").glob("*/placement.json"))
+    placement = PlacementReceipt.model_validate_json(placement_path.read_text(encoding="utf-8"))
+    tampered = placement.model_copy(update={"detail": "tampered placement receipt"})
+    placement_path.write_text(tampered.model_dump_json(exclude_none=True, indent=2) + "\n", encoding="utf-8")
+
+    with pytest.raises(RuntimeError, match="attempt placement receipt mismatch"):
+        finalize_campaign(runtime.store.root)

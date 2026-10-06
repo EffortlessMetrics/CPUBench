@@ -137,11 +137,54 @@ def _affinity_capability() -> CapabilityEvidence:
             authority="psutil.Process.cpu_affinity",
             detail=str(exc),
         )
+    if system == "windows":
+        detail = (
+            "Process affinity can be requested and read back within the visible processor group. "
+            "Processor-group and CPU Set authority remain unqualified."
+        )
+    else:
+        detail = (
+            "Process affinity can be requested and read back; hard-affinity qualification also "
+            "requires provider start/end residency evidence."
+        )
     return CapabilityEvidence(
         state=CapabilityState.AVAILABLE_UNQUALIFIED,
         authority="psutil.Process.cpu_affinity",
-        detail="Affinity can be requested and read back; per-attempt residency still requires separate evidence.",
-        evidence={"current_affinity": current},
+        detail=detail,
+        evidence={"current_affinity": current, "platform": system},
+    )
+
+
+def _residency_capability() -> CapabilityEvidence:
+    system = platform.system().lower()
+    if system == "linux":
+        return CapabilityEvidence(
+            state=CapabilityState.AVAILABLE_UNQUALIFIED,
+            authority="provider.sched_getcpu",
+            detail=(
+                "Providers can report start/end logical CPU observations. Per-attempt qualification "
+                "still requires agreement with an accepted affinity request."
+            ),
+        )
+    if system == "windows":
+        return CapabilityEvidence(
+            state=CapabilityState.AVAILABLE_UNQUALIFIED,
+            authority="provider.GetCurrentProcessorNumber",
+            detail=(
+                "Providers can report start/end processor numbers within the visible processor group. "
+                "Processor-group and CPU Set authority are not yet qualified."
+            ),
+        )
+    if system == "darwin":
+        return CapabilityEvidence(
+            state=CapabilityState.UNSUPPORTED,
+            authority="platform-policy",
+            detail="The current macOS provider does not expose authoritative logical-CPU residency.",
+        )
+    return CapabilityEvidence(
+        state=CapabilityState.UNKNOWN,
+        authority="platform-policy",
+        detail="Provider execution residency has not been qualified on this platform.",
     )
 
 
@@ -231,7 +274,9 @@ def collect_machine_receipt() -> MachineReceipt:
     vm = psutil.virtual_memory()
     known_unknowns: list[str] = []
     if system_name == "Darwin":
-        known_unknowns.append("hard CPU affinity is not claimed")
+        known_unknowns.append("hard CPU affinity and authoritative logical-CPU residency are not claimed")
+    if system_name == "Windows":
+        known_unknowns.append("processor-group and CPU Set placement authority are not yet qualified")
     if not topology.get("logical_cpus"):
         known_unknowns.append("detailed CPU topology unavailable")
 
@@ -269,6 +314,7 @@ def collect_machine_receipt() -> MachineReceipt:
             "timer.python_monotonic_ns": _timer_capability(),
             "timer.native_interval": _native_timer_capability(),
             "placement.process_affinity": _affinity_capability(),
+            "placement.execution_residency": _residency_capability(),
             "counters.pmu": _pmu_capability(),
             "sensors.thermal": _sensor_capability("thermal"),
             "sensors.battery": _sensor_capability("battery"),

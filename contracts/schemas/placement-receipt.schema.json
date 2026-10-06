@@ -1,0 +1,163 @@
+{
+  "$defs": {
+    "CapabilityState": {
+      "enum": [
+        "qualified",
+        "available_unqualified",
+        "unsupported",
+        "failed",
+        "unknown"
+      ],
+      "title": "CapabilityState",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "accepted_cpus": {
+      "items": {
+        "type": "integer"
+      },
+      "title": "Accepted Cpus",
+      "type": "array"
+    },
+    "authority": {
+      "title": "Authority",
+      "type": "string"
+    },
+    "detail": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Detail"
+    },
+    "hard_affinity_verified": {
+      "default": false,
+      "title": "Hard Affinity Verified",
+      "type": "boolean"
+    },
+    "migrated": {
+      "anyOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Migrated"
+    },
+    "observed_cpus": {
+      "items": {
+        "type": "integer"
+      },
+      "title": "Observed Cpus",
+      "type": "array"
+    },
+    "observed_end_cpu": {
+      "anyOf": [
+        {
+          "minimum": 0,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Observed End Cpu"
+    },
+    "observed_start_cpu": {
+      "anyOf": [
+        {
+          "minimum": 0,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Observed Start Cpu"
+    },
+    "original_cpus": {
+      "items": {
+        "type": "integer"
+      },
+      "title": "Original Cpus",
+      "type": "array"
+    },
+    "platform": {
+      "title": "Platform",
+      "type": "string"
+    },
+    "reason_code": {
+      "title": "Reason Code",
+      "type": "string"
+    },
+    "request_verified": {
+      "default": false,
+      "title": "Request Verified",
+      "type": "boolean"
+    },
+    "requested": {
+      "default": false,
+      "title": "Requested",
+      "type": "boolean"
+    },
+    "requested_cpus": {
+      "items": {
+        "type": "integer"
+      },
+      "title": "Requested Cpus",
+      "type": "array"
+    },
+    "residency_verified": {
+      "anyOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Residency Verified"
+    },
+    "restored": {
+      "anyOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Restored"
+    },
+    "selector": {
+      "title": "Selector",
+      "type": "string"
+    },
+    "state": {
+      "$ref": "#/$defs/CapabilityState"
+    }
+  },
+  "required": [
+    "selector",
+    "platform",
+    "state",
+    "authority",
+    "reason_code"
+  ],
+  "title": "PlacementReceipt",
+  "type": "object"
+}

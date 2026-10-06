@@ -10,6 +10,7 @@ import time
 from typing import Any
 
 from cpubench.models import FamilyDescriptor, ProviderDescriptor
+from cpubench.providers._residency import current_cpu, residency_metadata
 
 
 PROVIDER_ID = "python-sqlite"
@@ -90,22 +91,24 @@ def run_lookup(
     connection = _build_database(rows, payload_bytes)
     cursor = connection.cursor()
     key_sets = [_query_keys(rows, completed_units, seed + index) for index in range(warmups + samples)]
+    placement_start_cpu = current_cpu()
 
-    emit(
-        {
-            "record_type": "metadata",
-            "family_id": FAMILY_ID,
-            "timer": "python.time.monotonic_ns",
-            "setup_excluded": True,
-            "database_validated": True,
-            "database_location": "sqlite-memory",
-            "rows": rows,
-            "payload_bytes": payload_bytes,
-            "sqlite_version": sqlite3.sqlite_version,
-            "python_version": sys.version.split()[0],
-            "warm_state": True,
-        }
-    )
+    metadata: dict[str, Any] = {
+        "record_type": "metadata",
+        "family_id": FAMILY_ID,
+        "timer": "python.time.monotonic_ns",
+        "setup_excluded": True,
+        "database_validated": True,
+        "database_location": "sqlite-memory",
+        "rows": rows,
+        "payload_bytes": payload_bytes,
+        "sqlite_version": sqlite3.sqlite_version,
+        "python_version": sys.version.split()[0],
+        "warm_state": True,
+    }
+    if placement_start_cpu is not None:
+        metadata["placement_start_cpu"] = placement_start_cpu
+    emit(metadata)
 
     for sample_index, keys in enumerate(key_sets):
         start = time.monotonic_ns()
@@ -126,6 +129,7 @@ def run_lookup(
             }
         )
 
+    emit(residency_metadata(placement_start_cpu, current_cpu()))
     cursor.close()
     connection.close()
     return 0

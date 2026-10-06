@@ -114,6 +114,119 @@ class CapabilityEvidence(StrictModel):
     evidence: dict[str, Any] = Field(default_factory=dict)
 
 
+class PlacementReceipt(StrictModel):
+    selector: str
+    platform: str
+    state: CapabilityState
+    authority: str
+    requested: bool = False
+    request_verified: bool = False
+    requested_cpus: list[int] = Field(default_factory=list)
+    accepted_cpus: list[int] = Field(default_factory=list)
+    original_cpus: list[int] = Field(default_factory=list)
+    observed_start_cpu: int | None = Field(default=None, ge=0)
+    observed_end_cpu: int | None = Field(default=None, ge=0)
+    observed_cpus: list[int] = Field(default_factory=list)
+    migrated: bool | None = None
+    residency_verified: bool | None = None
+    hard_affinity_verified: bool = False
+    restored: bool | None = None
+    reason_code: str
+    detail: str | None = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def upgrade_legacy_receipt(cls, value: Any) -> Any:
+        if not isinstance(value, dict) or "state" in value:
+            return value
+        selector = str(value.get("selector", "scheduler_open"))
+        observed_raw = value.get("observed", [])
+        observed = [int(cpu) for cpu in observed_raw] if isinstance(observed_raw, list) else []
+        requested = bool(value.get("requested", selector != "scheduler_open"))
+        request_verified = bool(value.get("verified", False))
+        return {
+            "selector": selector,
+            "platform": "legacy_unknown",
+            "state": CapabilityState.AVAILABLE_UNQUALIFIED,
+            "authority": "legacy_untyped_placement",
+            "requested": requested,
+            "request_verified": request_verified,
+            "requested_cpus": observed if requested else [],
+            "accepted_cpus": observed if request_verified else [],
+            "observed_cpus": observed,
+            "hard_affinity_verified": False,
+            "reason_code": (
+                "legacy_scheduler_open" if selector == "scheduler_open" else "legacy_residency_not_receipted"
+            ),
+            "detail": value.get("error"),
+        }
+
+    @model_validator(mode="after")
+    def validate_consistency(self) -> Self:
+        for field_name in ("requested_cpus", "accepted_cpus", "original_cpus", "observed_cpus"):
+            values = list(getattr(self, field_name))
+            if any(value < 0 for value in values):
+                raise ValueError(f"{field_name} must contain non-negative CPU identifiers")
+            object.__setattr__(self, field_name, sorted(set(values)))
+
+        derived_observed = sorted(
+            {
+                cpu
+                for cpu in (self.observed_start_cpu, self.observed_end_cpu)
+                if cpu is not None
+            }
+        )
+        if derived_observed:
+            object.__setattr__(self, "observed_cpus", derived_observed)
+        if (
+            self.observed_start_cpu is not None
+            and self.observed_end_cpu is not None
+            and self.observed_start_cpu != self.observed_end_cpu
+        ):
+            object.__setattr__(self, "migrated", True)
+
+        if self.selector == "scheduler_open":
+            if self.requested or self.request_verified or self.hard_affinity_verified:
+                raise ValueError("scheduler_open cannot claim requested or verified hard affinity")
+        elif not self.requested:
+            raise ValueError("non-scheduler placement must be marked requested")
+
+        if self.request_verified and not self.requested:
+            raise ValueError("request verification requires a placement request")
+        if self.hard_affinity_verified:
+            if self.state != CapabilityState.QUALIFIED:
+                raise ValueError("hard affinity verification requires qualified state")
+            if not self.request_verified or self.residency_verified is not True:
+                raise ValueError("hard affinity verification requires request and residency verification")
+        if self.state == CapabilityState.QUALIFIED and not self.hard_affinity_verified:
+            raise ValueError("qualified placement must verify hard affinity")
+        return self
+
+    def legacy_payload(self) -> dict[str, Any] | None:
+        if self.authority != "legacy_untyped_placement":
+            return None
+        payload: dict[str, Any] = {
+            "selector": self.selector,
+            "requested": self.requested,
+            "verified": self.request_verified,
+        }
+        if self.observed_cpus:
+            payload["observed"] = list(self.observed_cpus)
+        if self.detail is not None:
+            payload["error"] = self.detail
+        return payload
+
+
+def default_placement_receipt() -> PlacementReceipt:
+    return PlacementReceipt(
+        selector="scheduler_open",
+        platform="unknown",
+        state=CapabilityState.AVAILABLE_UNQUALIFIED,
+        authority="operating_system_scheduler",
+        reason_code="scheduler_open_by_design",
+    )
+
+
 class MachineReceipt(ArtifactModel):
     artifact_kind: Literal["machine_receipt"] = "machine_receipt"
     system: dict[str, Any]
@@ -413,7 +526,7 @@ class AttemptRecord(ArtifactModel):
     effective_parameters: dict[str, Any] = Field(default_factory=dict)
     samples: list[SampleRecord] = Field(default_factory=list)
     work_output: dict[str, Any] = Field(default_factory=dict)
-    placement: dict[str, Any] = Field(default_factory=dict)
+    placement: PlacementReceipt = Field(default_factory=default_placement_receipt)
     warnings: list[str] = Field(default_factory=list)
     provider_stdout: str = ""
     provider_stderr: str = ""
@@ -427,6 +540,9 @@ class AttemptRecord(ArtifactModel):
         # independently self-verifiable.
         payload.pop("provider_stdout", None)
         payload.pop("provider_stderr", None)
+        legacy_placement = self.placement.legacy_payload()
+        if legacy_placement is not None:
+            payload["placement"] = legacy_placement
         return payload
 
 

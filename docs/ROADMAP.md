@@ -25,7 +25,7 @@
 - [x] qualify Python and native interval timers inside campaigns;
 - [x] derive minimum sample duration from observed overhead and effective resolution;
 - validate profile ratios, warm-up policy, and cold-start policy across the hardware matrix;
-- add per-attempt residency evidence;
+- [x] add typed per-attempt placement and provider residency evidence;
 - implement Windows processor groups / CPU Sets;
 - enrich macOS topology and core-class metadata;
 - qualify Linux PMU event access without making it portable-result mandatory.

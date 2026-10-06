@@ -33,6 +33,7 @@ Implemented:
 - subprocess provider protocol (`describe`, `self-test`, `run`);
 - campaign-qualified Python and native interval timers with measured overhead, effective resolution, and minimum sample duration;
 - calibration controls for known-duration intervals;
+- typed per-attempt placement receipts that separate requests, affinity readback, observed residency, migration, and restoration;
 - native dependent-load-latency and memory-level-parallelism families;
 - a scoped warm in-memory SQLite indexed-lookup application anchor;
 - obligation-level work and measurement validation;
@@ -45,6 +46,7 @@ Implemented:
 Not yet earned:
 
 - publication-grade validation across the target hardware matrix;
+- full Windows processor-group and CPU Set authority;
 - public/private challenge-pack execution against real systems;
 - topology/coherence families;
 - validated mechanism-to-application studies beyond the initial SQLite anchor;

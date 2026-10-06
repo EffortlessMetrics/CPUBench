@@ -39,6 +39,9 @@ def test_native_provider_builds_and_runs(tmp_path: Path) -> None:
     )
     timer_attempt = provider.run_attempt(timer_item)
     assert timer_attempt.state.value == "completed"
+    assert ("placement_start_cpu" in timer_attempt.effective_parameters) == (
+        "placement_end_cpu" in timer_attempt.effective_parameters
+    )
     assert timer_attempt.effective_parameters["timer_control"] is True
     assert all(sample.metrics["non_monotonic_count"] == 0 for sample in timer_attempt.samples)
     assert all(sample.metrics["min_positive_delta_ns"] > 0 for sample in timer_attempt.samples)
@@ -65,5 +68,8 @@ def test_native_provider_builds_and_runs(tmp_path: Path) -> None:
     )
     attempt = provider.run_attempt(item)
     assert attempt.state.value == "completed"
+    assert ("placement_start_cpu" in attempt.effective_parameters) == (
+        "placement_end_cpu" in attempt.effective_parameters
+    )
     assert attempt.effective_parameters["cycle_validated"] is True
     assert len(attempt.samples) == 2
