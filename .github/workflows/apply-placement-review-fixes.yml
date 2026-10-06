@@ -1,0 +1,41 @@
+name: Apply placement review fixes
+
+on:
+  push:
+    branches: [feat/placement-residency-v2]
+    paths:
+      - ".github/workflows/apply-placement-review-fixes.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify and apply review fixes
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "f76fde3c4f0d6b047e6a32847538c95397635edef0581248ec704738404f2d19  .bootstrap/placement-review-fixes.patch.xz" | sha256sum -c -
+          xz -dc .bootstrap/placement-review-fixes.patch.xz > /tmp/placement-review-fixes.patch
+          echo "52fce6131f26ef1bdf5be8b5d46c8e346cd898552f281cf87ad5c3198260eac3  /tmp/placement-review-fixes.patch" | sha256sum -c -
+          git apply --check /tmp/placement-review-fixes.patch
+          git apply /tmp/placement-review-fixes.patch
+          rm -rf .bootstrap .github/workflows/apply-placement-review-fixes.yml
+          git diff --check
+
+      - name: Commit fixes
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "EffortlessSteven"
+          git config user.email "15812269+EffortlessSteven@users.noreply.github.com"
+          git add -A
+          git commit -m "fix: fail closed on unverified placement restoration"
+          git push origin HEAD:feat/placement-residency-v2
